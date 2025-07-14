@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String?
+  email     String?  @unique
+  googleID    String @unique
+  tokenExpiry        DateTime?  
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  dashboards Dashboard?
+  limit      Int?      @default(5)// 5 interview per user
+}
+model Dashboard{
+  id        String   @id @default(uuid())
+  Profile Profile?
+  Interview Interview[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String @unique
+  user      User     @relation(fields: [userId], references: [id])
+}
+model Profile {
+  id        String   @id @default(uuid())
+  tagline   String?
+  about     String?
+  Skills  String[]
+  WorkExperience String
+  Projects Project[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  dashboardId String @unique
+  dashboard Dashboard @relation(fields: [dashboardId], references: [id])
+}
+model Project{
+  id   String   @id @default(uuid())
+  name String
+  description String
+  profileId String
+  Profile Profile  @relation(fields: [profileId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Interview{
+  id        String   @id @default(uuid())
+  Jobtitle     String
+  description String
+  difficulty Level
+  skills String
+  experience String
+  status    Status
+  startTime DateTime @default(now())
+  Messages Message[]
+  endTime   DateTime?
+  Analytics Analytics?
+  dashboardId String
+  Dashboard Dashboard @relation(fields: [dashboardId], references: [id])
+}
+model Message {
+  id          String   @id @default(uuid())
+  interviewId      String
+  Interview        Interview     @relation(fields: [interviewId], references: [id])
+  content     String
+  Sender      Sender 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+enum Sender {
+  USER
+  ASSISTANT
+}
+model Analytics {
+  id        String   @id @default(uuid())
+  interviewId String @unique
+  Interview Interview @relation(fields: [interviewId], references: [id])
+  CommunicationScore Int
+  TechnicalScore Int
+  ProblemSolvingScore Int
+  RelevanceScore Int
+  VocabularyScore Int
+  QuestionsAskedScore Int[]
+  TechnicalKeywords String[]
+  KeyStrengths String[]
+  GrowthAreas String[]
+  questions Question[]
+  HRInsight HrInsight?
+  InterviewSummary String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Question{
+  id        String   @id @default(uuid())
+  question String 
+  answer String
+  AnalyticsId String 
+  Analytics Analytics @relation(fields: [AnalyticsId], references: [id])
+}
+model HrInsight{
+  id        String   @id @default(uuid())
+  TechnicalCompetency String
+  ExperienceLevel String
+  CulturalFit String
+  LearningPotential String
+  InterviewReadlineScore Int
+  AnalyticsId String @unique
+  Analytics Analytics @relation(fields: [AnalyticsId], references: [id])
+}
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Status {
+  IN_PROGRESS
+  COMPLETED
+}
