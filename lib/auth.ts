@@ -73,7 +73,7 @@ export const authOptions = {
             return session;
     },
     async signIn() {
-      const ip = (await headers()).get('x-forwarded-for') ?? 'unknown';
+      const ip = headers().get('x-forwarded-for') ?? 'unknown';
       const { success } = await signin_rate_limit.limit(ip);
       console.log(`Request from IP: ${ip}`);
       if (!success) {

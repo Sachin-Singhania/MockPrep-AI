@@ -48,7 +48,7 @@ const mockInterviewData = {
   candidateName: "John Doe",
   position: "Senior Frontend Developer",
   date: "2024-01-15",
-  duration: "45 minutes",
+  duration: "20 minutes",
   overallScore: 78,
   scores: {
     communication: 85,
@@ -112,7 +112,7 @@ export default function InterviewAnalytics() {
 
   useEffect(() => {
     // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 10000)
+    const timer = setTimeout(() => setIsLoading(false), 1000)
     return () => clearTimeout(timer)
   }, [])
 

@@ -1,24 +1,19 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import pdf from 'pdf-parse'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
-export async function parsePdfIfMaxTwoPages(pdfInput: Buffer | string): Promise<string> {
-  let buffer: Buffer;
-
-  if (typeof pdfInput === 'string') {
-    buffer = Buffer.from(pdfInput, 'base64');
-  } else {
-    buffer = pdfInput;
-  }
-
-  const data = await pdf(buffer);
-
-  if (data.numpages > 2) {
-    throw new Error(`PDF has ${data.numpages} pages (maximum allowed is 2).`);
-  }
-
-  return data.text.trim();
+export function getStatus(score: number): { status: string} {
+    if (score >= 85 && score <= 100) {
+        return { status: "Excellent"}
+    } else if (score >= 70 && score < 85) {
+        return { status: "Good"}
+    } else if (score >= 50 && score < 70) {
+        return { status: "Average"}
+    } else if (score >= 30 && score < 50) {
+        return { status: "Below Average"}
+    } else {
+        return { status: "Poor"}
+    }
 }
