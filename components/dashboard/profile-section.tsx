@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,22 +9,70 @@ import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Briefcase, Code, Plus, X, Upload, FileText, Sparkles } from "lucide-react"
+import { ResumeExtracter } from "@/lib/actions/rag"
+
+interface Projects {
+  id: string,
+  name: string,
+  description: string,
+}
+interface Experience {
+  title: string
+  company: string
+  duration: string
+  badge: string
+  badgeVariant: "default" | "secondary" | "destructive" | "outline" 
+}
 
 export function ProfileSection() {
-  const [skills, setSkills] = useState(["JavaScript", "React", "Node.js", "Python"])
+  const imageInputref = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // All state hooks
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [tagline, setTagline] = useState("")
+  const [about, setAbout] = useState("")
+  const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      name: "E-commerce Platform",
-      description: "Full-stack e-commerce solution built with React and Node.js",
-    },
-    {
-      id: 2,
-      name: "Task Management App",
-      description: "React-based task management application with real-time updates",
-    },
-  ])
+  const [projects, setProjects] = useState<Projects[]>([])
+  const [experiences, setExperiences] = useState<Experience[]>([])
+  const [avatar, setAvatar] = useState<File | null>(null)
+  const [resume, setResume] = useState<File | null>(null)
+
+  const handleButtonClickImage = () => {
+    imageInputref.current?.click()
+  }
+
+  const handleButtonClickFile = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || file.type !== "application/pdf" || file.size > 2 * 1024 * 1024) return
+
+    setResume(file)
+
+    try {
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const base64 = reader.result?.toString()
+        if (base64) {
+          const { Projects, Skills, WorkExperience } = await ResumeExtracter(base64)
+          // You can update states here later
+        }
+      }
+      reader.readAsDataURL(file)
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) setAvatar(file)
+  }
 
   const addSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -53,10 +101,17 @@ export function ProfileSection() {
             </CardHeader>
             <CardContent className="text-center">
               <Avatar className="w-32 h-32 mx-auto mb-4">
-                <AvatarImage src="/placeholder.svg?height=128&width=128" />
+                <AvatarImage src={avatar ? URL.createObjectURL(avatar) : "/placeholder.svg?height=128&width=128"} />
                 <AvatarFallback className="bg-blue-600 text-white text-2xl">JD</AvatarFallback>
               </Avatar>
-              <Button variant="outline" size="sm">
+              <Input
+                type="file"
+                ref={imageInputref}
+                className="hidden"
+                accept="image/*"
+                onChange={handleAvatarChange}
+              />
+              <Button variant="outline" size="sm" onClick={handleButtonClickImage}>
                 <Upload className="w-4 h-4 mr-2" />
                 Change Photo
               </Button>
@@ -77,7 +132,14 @@ export function ProfileSection() {
                 <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-600 mb-2">Drop your resume here or click to browse</p>
                 <p className="text-xs text-gray-500">Supports PDF files up to 10MB</p>
-                <Button className="mt-3" size="sm">
+                <Input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="application/pdf"
+                  onChange={handleFileChange}
+                />
+                <Button className="mt-3" size="sm" onClick={handleButtonClickFile}>
                   <Upload className="w-4 h-4 mr-2" />
                   Upload Resume
                 </Button>
@@ -95,26 +157,27 @@ export function ProfileSection() {
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" defaultValue="John Doe" />
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                  <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="john@example.com" />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="tagline">Professional Tagline</Label>
-                <Input id="tagline" defaultValue="Full Stack Developer" />
+                <Label htmlFor="tagline">Tagline</Label>
+                <Input id="tagline" value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Full Stack Developer" />
               </div>
 
               <div>
                 <Label htmlFor="about">About</Label>
                 <Textarea
                   id="about"
+                  value={about}
+                  onChange={(e) => setAbout(e.target.value)}
                   rows={4}
-                  defaultValue="Passionate full-stack developer with 5+ years of experience building scalable web applications. Expertise in React, Node.js, and cloud technologies."
                 />
               </div>
             </CardContent>
@@ -141,7 +204,7 @@ export function ProfileSection() {
                   placeholder="Add a skill"
                   value={newSkill}
                   onChange={(e) => setNewSkill(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && addSkill()}
+                  onKeyUp={(e) => e.key === "Enter" && addSkill()}
                 />
                 <Button onClick={addSkill} size="sm">
                   <Plus className="w-4 h-4" />
@@ -157,33 +220,20 @@ export function ProfileSection() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Briefcase className="w-5 h-5 text-blue-600" />
+                {experiences.length === 0 ? (
+                  <p className="text-gray-500 text-sm text-center">No experience added yet.</p>
+                ) : (
+                  experiences.map((exp, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div>
+                        <p className="font-medium">{exp.title}</p>
+                        <p className="text-sm text-gray-600">{exp.company} • {exp.duration}</p>
+                      </div>
+                      <Badge variant={exp.badgeVariant}>{exp.badge}</Badge>
                     </div>
-                    <div>
-                      <p className="font-medium">Senior Full Stack Developer</p>
-                      <p className="text-sm text-gray-600">TechCorp Inc. • 3 years</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline">Current</Badge>
-                </div>
-
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <Code className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Frontend Developer</p>
-                      <p className="text-sm text-gray-600">StartupXYZ • 2 years</p>
-                    </div>
-                  </div>
-                  <Badge variant="secondary">2019-2021</Badge>
-                </div>
+                  ))
+                )}
               </div>
-
               <Button variant="outline" className="w-full mt-4 bg-transparent">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Experience
@@ -205,7 +255,6 @@ export function ProfileSection() {
                   </div>
                 ))}
               </div>
-
               <Button variant="outline" className="w-full mt-4 bg-transparent">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Project

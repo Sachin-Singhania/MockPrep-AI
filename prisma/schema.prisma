@@ -78,6 +78,7 @@ model Message {
   Interview        Interview     @relation(fields: [interviewId], references: [id])
   content     String
   Sender      Sender 
+  type QuestionType
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -130,4 +131,10 @@ enum Level {
 enum Status {
   IN_PROGRESS
   COMPLETED
+}
+enum QuestionType{
+  QUESTION
+  ANSWER
+  END
+  VALIDATION
 }

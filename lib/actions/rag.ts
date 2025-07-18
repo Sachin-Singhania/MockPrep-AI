@@ -2,6 +2,7 @@
 import { GoogleGenerativeAI as GoogleGenAI } from "@google/generative-ai";
 import pdf from "pdf-parse";
 import { getStatus } from "../utils";
+import { Buffer } from 'buffer';
 
 const ai = new GoogleGenAI(process.env.APIKEY as string);
 
@@ -43,7 +44,7 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
     }
 }
 
-export async function ResumeExtracter(pdfInput: Buffer | string): Promise<Resume> {
+export async function ResumeExtracter(pdfInput: string): Promise<Resume> {
     try {
         const pdfData = await parsePdfIfMaxTwoPages(pdfInput);
         const systemInstruction = ` You are a smart AI Resume Extractor which takes pdf text as an input and returns the following details:-
@@ -126,7 +127,6 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
     const data: InterviewChat = JSON.parse(output);
     return data;
 }
-
 
 
 export async function analytics(interviewDetails: interviewDetails, job: JobDescription) {
@@ -261,21 +261,27 @@ async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewI
 
     return data;
 }
- async function parsePdfIfMaxTwoPages(pdfInput: Buffer | string): Promise<string> {
-    let buffer: Buffer;
+export async function parsePdfIfMaxTwoPages(base64:string) {
+    try {
+   const base64Data = base64.split(";base64,").pop();
 
-    if (typeof pdfInput === 'string') {
-        buffer = Buffer.from(pdfInput, 'base64');
-    } else {
-        buffer = pdfInput;
+  if (!base64Data) {
+    throw new Error("Invalid base64 data");
+  }
+      const buffer = Buffer.from(base64Data, "base64");
+    
+      // ✅ Parse PDF to check page count
+      const data = await pdf(buffer);
+    console.log(data.numpages)
+      if (data.numpages >= 3) {
+        throw new Error("PDF must have less than 3 pages.");
+      }
+    
+      console.log("PDF is valid. Continue processing...");
+          return data.text.trim();
+    } catch (error) {
+        console.log(error);
+        return '';
     }
-
-    const data = await pdf(buffer);
-
-    if (data.numpages > 2) {
-        throw new Error(`PDF has ${data.numpages} pages (maximum allowed is 2).`);
-    }
-
-    return data.text.trim();
 }
 
