@@ -10,19 +10,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Briefcase, Code, Plus, X, Upload, FileText, Sparkles } from "lucide-react"
 import { ResumeExtracter } from "@/lib/actions/rag"
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@radix-ui/react-dialog"
+import { DialogFooter, DialogHeader } from "../ui/dialog"
 
-interface Projects {
-  id: string,
-  name: string,
-  description: string,
-}
-interface Experience {
-  title: string
-  company: string
-  duration: string
-  badge: string
-  badgeVariant: "default" | "secondary" | "destructive" | "outline" 
-}
+
 
 export function ProfileSection() {
   const imageInputref = useRef<HTMLInputElement>(null)
@@ -35,7 +26,7 @@ export function ProfileSection() {
   const [about, setAbout] = useState("")
   const [skills, setSkills] = useState<string[]>([])
   const [newSkill, setNewSkill] = useState("")
-  const [projects, setProjects] = useState<Projects[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
   const [experiences, setExperiences] = useState<Experience[]>([])
   const [avatar, setAvatar] = useState<File | null>(null)
   const [resume, setResume] = useState<File | null>(null)
@@ -61,6 +52,9 @@ export function ProfileSection() {
         if (base64) {
           const { Projects, Skills, WorkExperience } = await ResumeExtracter(base64)
           // You can update states here later
+          setExperiences(WorkExperience)
+          setSkills(Skills);
+          setProjects(Projects)
         }
       }
       reader.readAsDataURL(file)
@@ -83,6 +77,9 @@ export function ProfileSection() {
 
   const removeSkill = (skillToRemove: string) => {
     setSkills(skills.filter((skill) => skill !== skillToRemove))
+  }
+  const handleSaveInfo= () =>{
+    
   }
 
   return (
@@ -213,31 +210,37 @@ export function ProfileSection() {
             </CardContent>
           </Card>
 
-          {/* Work Experience */}
+
           <Card>
             <CardHeader>
               <CardTitle>Work Experience</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {experiences.length === 0 ? (
-                  <p className="text-gray-500 text-sm text-center">No experience added yet.</p>
-                ) : (
-                  experiences.map((exp, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{exp.title}</p>
-                        <p className="text-sm text-gray-600">{exp.company} • {exp.duration}</p>
+                {experiences?.map((val, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-blue-600" />
                       </div>
-                      <Badge variant={exp.badgeVariant}>{exp.badge}</Badge>
+                      <div>
+                        <p className="font-medium">{val.title}</p>
+                        <p className="text-sm text-gray-600">
+                          {val.company} •{" "}
+                          {typeof val.endYear === "number"
+                            ? val.endYear - val.startYear === 0
+                              ? "<1 years"
+                              : `${val.endYear - val.startYear} years`
+                            : `${new Date().getFullYear() - val.startYear} years`}
+                        </p>
+                      </div>
                     </div>
-                  ))
-                )}
+                    <Badge variant="secondary">{val.endYear ? `${val.startYear}-${val.endYear}` : "Current"}</Badge>
+                  </div>
+                ))}
               </div>
-              <Button variant="outline" className="w-full mt-4 bg-transparent">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Experience
-              </Button>
+
+                 <AddExperienceDialog onAddExperience={(exp) => setExperiences([...experiences, exp])} />
             </CardContent>
           </Card>
 
@@ -248,25 +251,129 @@ export function ProfileSection() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {projects.map((project) => (
-                  <div key={project.id} className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-2">{project.name}</h4>
-                    <p className="text-sm text-gray-600">{project.description}</p>
+                {projects.map((project,index) => (
+                  <div key={index+1} className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">{project.projectName}</h4>
+                    <p className="text-sm text-gray-600">{project.projectDescription}</p>
                   </div>
                 ))}
               </div>
-              <Button variant="outline" className="w-full mt-4 bg-transparent">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Project
-              </Button>
+          <AddProjectDialog onAddProject={(proj) => setProjects([...projects, proj])} />
+
             </CardContent>
           </Card>
 
           <div className="flex justify-end">
-            <Button className="px-8">Save Changes</Button>
+            <Button className="px-8" onClick={handleSaveInfo}>Save Changes</Button>
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+interface Props {
+  onAddExperience: (exp: Experience) => void;
+}
+
+const AddExperienceDialog = ({ onAddExperience }: Props) => {
+  const [title, setTitle] = useState("");
+  const [company, setCompany] = useState("");
+  const [startYear, setStartYear] = useState<number | "">("");
+  const [endYear, setEndYear] = useState<number | "">("");
+
+  const handleSave = () => {
+    if (!title || !company || !startYear) return;
+
+    onAddExperience({
+      title,
+      company,
+      startYear: Number(startYear),
+      endYear: endYear ? Number(endYear) : undefined,
+    });
+
+    setTitle("");
+    setCompany("");
+    setStartYear("");
+    setEndYear("");
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full mt-4 bg-transparent">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Experience
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <div className="grid gap-4 py-4">
+          <Input placeholder="Job Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input placeholder="Company Name" value={company} onChange={(e) => setCompany(e.target.value)} />
+          <Input
+            placeholder="Start Year"
+            type="number"
+            value={startYear}
+            onChange={(e) => setStartYear(Number(e.target.value))}
+          />
+          <Input
+            placeholder="End Year (Leave empty if current)"
+            type="number"
+            value={endYear}
+            onChange={(e) => setEndYear(Number(e.target.value))}
+          />
+        </div>
+        <DialogFooter>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+ function AddProjectDialog({
+  onAddProject,
+}: {
+  onAddProject: (project: Project) => void;
+}) {
+  const [project, setProject] = useState<Project>({
+    projectName: "",
+    projectDescription: "",
+  });
+
+  const [open, setOpen] = useState(false);
+
+  const handleAdd = () => {
+    if (!project.projectName || !project.projectDescription) return;
+    onAddProject(project);
+    setProject({ projectName: "", projectDescription: "" });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="w-full mt-4 bg-transparent">
+          <Plus className="w-4 h-14 mr-2" />
+          Add Project
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <div className="space-y-4">
+          <Input
+            placeholder="Project Name"
+            value={project.projectName}
+            onChange={(e) => setProject({ ...project, projectName: e.target.value })}
+          />
+          <Textarea
+            placeholder="Project Description"
+            value={project.projectDescription}
+            onChange={(e) => setProject({ ...project, projectDescription: e.target.value })}
+          />
+          <Button onClick={handleAdd} className="w-full">
+            Save Project
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

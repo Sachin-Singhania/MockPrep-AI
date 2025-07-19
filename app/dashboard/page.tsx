@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Briefcase, LogOut, Settings, Calendar, Clock, Star, FileText, MapPin, Mail, Edit } from "lucide-react"
 import { ProfileSection } from "@/components/dashboard/profile-section"
 import { InterviewSection } from "@/components/dashboard/interview-section"
+import { getProfile } from "@/lib/actions/api"
+import { useSession } from "next-auth/react"
 
 type SidebarOption = "dashboard" | "profile" | "interviews"
 
@@ -19,7 +21,7 @@ export default function DashboardPage() {
     { id: "profile" as const, label: "Profile", icon: User },
     { id: "interviews" as const, label: "Interviews", icon: Briefcase },
   ]
-
+  
   const renderContent = () => {
     switch (activeSection) {
       case "profile":
@@ -94,6 +96,17 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
+  const [Profile, setProfile] = useState({})
+  const {data:session,status} = useSession();  
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user?.userId) return;
+    console.log("HELL 2");
+    async function profile(userId:string) {
+      return getProfile(userId);
+    }
+    setProfile(profile(session.user.userId));
+    console.log(Profile)
+  }, [status])
   return (
     <div className="p-8">
       <div className="mb-8">

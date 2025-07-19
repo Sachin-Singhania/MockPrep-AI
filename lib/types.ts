@@ -6,8 +6,9 @@ interface UserDetails {
 interface JobDescription {
     jobTitle: string;
     jobDescription: string;
-    skills: string[];
+    skills: string;
     experience: number;
+    difficulty : "EASY" | "MEDIUM" | "HARD";
 }
 type Project = {
     projectName: string;
@@ -15,14 +16,22 @@ type Project = {
 }
 interface Resume {
     Skills: string[];
-    WorkExperience: number,
-    Projects: Project
+    WorkExperience: Experience[],
+    Projects: Project[]
 }
 interface interviewDetails {
+    id? : string;
     JobDescription: JobDescription,
     InterviewChatHistory: InterviewChat[]
     name: string,
-    timeLeft: number
+    timeLeft: string,
+    startTime: Date,
+}
+interface Experience {
+  title: string
+  company: string
+  startYear : number
+  endYear?: number
 }
 type InterviewChat =
     | {

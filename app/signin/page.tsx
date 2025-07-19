@@ -1,27 +1,40 @@
 "use client"
-
 import type React from "react"
-
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
+import { signIn } from "next-auth/react"
+import { register } from "@/lib/actions/api"
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isRegister, setIsRegister] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [name, setname] = useState("")
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    console.log("Form submitted!")
+  const handleGoogleLogin = async() => {
+   await signIn("google" ,{callbackUrl: "/dashboard"});
   }
-
+  const handleRegister = async() => {
+    let type;
+    if(isRegister) type = "SIGNUP"
+    else type = "SIGNIN"
+    if (email && password ) {
+      if(type === "SIGNUP" ){
+        if (name.trim()=="") return; 
+        await register(type, email, password, name);
+      }
+      if (type === "SIGNIN"){
+        await register(type, email, password);
+      }
+  }}
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 relative overflow-hidden">
       {/* Abstract background shapes */}
@@ -39,20 +52,20 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleRegister} className="space-y-6">
           {isRegister && (
             <div>
               <Label htmlFor="name">Name</Label>
-              <Input id="name" type="text" placeholder="Your Name" required />
+              <Input id="name" type="text" placeholder="Your Name" required onChange={ e => setname(e.target.value)} />
             </div>
           )}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="your@example.com" required />
+            <Input id="email" type="email" placeholder="your@example.com" required onChange={ e => setEmail(e.target.value)}/>
           </div>
           <div className="relative">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" required />
+            <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" required onChange={ e => setPassword(e.target.value)}/>
             <Button
               type="button"
               variant="ghost"
@@ -80,7 +93,7 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <Button
+        <Button  onClick={handleGoogleLogin}
           variant="outline"
           className="w-full flex items-center justify-center space-x-2 py-2.5 rounded-lg border-gray-300 hover:bg-gray-50 transition-colors bg-transparent"
         >

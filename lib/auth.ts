@@ -2,10 +2,12 @@ import GoogleProvider from "next-auth/providers/google"
 import { DefaultSession, SessionStrategy } from "next-auth"
 import { headers } from "next/headers";
 import { signin_rate_limit } from "./redis";
+import { prisma } from "./prisma";
 declare module "next-auth" {
   interface Session {
     user?: DefaultSession["user"] & {
       userId?: string;
+      dashboardId ?: string;
     };
   }
 
@@ -29,45 +31,54 @@ export const authOptions = {
   ],
   secret: process.env.JWT_SECRET || "secret",
   callbacks: {
-    // async jwt({ token,user }:any) {
-    //   try {
-    //     if(user){
-    //       const exsistingUser = await prisma.user.findUnique({
-    //         where: { email: user.email },
-    //       });
-    //       let userId;
-    //       if (!exsistingUser) {
-    //         const newUser =await prisma.user.create({
-    //           data: {
-    //             name: token.name ,
-    //             email: token.email ,googleID: token.sub,tokenExpiry : token.exp,
-    //           },
-    //         });
-    //         userId=newUser.id
-    //       }else{
-    //         await prisma.user.update({
-    //           where: { email: user.email },
-    //           data:{
-    //             googleID: token.sub,tokenExpiry : token.exp,
-    //           }
-    //         })
-    //         userId = exsistingUser.id;
-            
-    //       }
-    //     token.id = user.sub ?? token.sub;
-    //     token.name = user.name;
-    //     token.email = user.email;
-    //      token.userId = userId;
-    //     }
-    //     return token
-    //   } catch (error) {
-    //     throw new Error("Error while signing in : Error "+ error);
-    //   }
-    // },
+    async jwt({ token,user }:any) {
+      try {
+        if(user){
+          const exsistingUser = await prisma.user.findUnique({
+            where: { email: user.email }, include : { dashboards:  
+              {select: {id: true}} 
+            }
+          });
+          console.log(exsistingUser);
+          let userId;
+          let dashboardId;
+          if (!exsistingUser) {
+            const newUser =await prisma.user.create({
+              data: {
+                name: token.name ,
+                email: token.email ,googleID: token.sub,tokenExpiry : token.exp,image :token.picture,dashboards :{create  :{}},
+              },include : { dashboards:  
+              {select: {id: true}} 
+            }
+            });
+            userId=newUser.id
+            dashboardId=newUser.dashboards?.id;
+          }else{
+            await prisma.user.update({
+              where: { email: user.email },
+              data:{
+                googleID: token.sub,tokenExpiry : token.exp, 
+              },
+            })
+            userId = exsistingUser.id;
+            dashboardId=exsistingUser.dashboards?.id;
+          }
+        token.id = user.sub ?? token.sub;
+        token.name = user.name;
+        token.email = user.email;
+         token.userId = userId;
+         token.dashboardId = dashboardId;
+        }
+        return token
+      } catch (error) {
+        throw new Error("Error while signing in : Error "+ error);
+      }
+    },
     async session({ session, token }:any) {
          session.user = {
     ...session.user,  
-    userId: token.userId
+    userId: token.userId,
+    dashboardId : token.dashboardId
   };
 
             return session;
@@ -80,5 +91,7 @@ export const authOptions = {
         return false;
       }
       return true;
-  },
+  },pages:{
+     signIn: '/signin',
+  }
 }}

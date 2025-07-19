@@ -17,8 +17,9 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   name      String?
-  email     String?  @unique
-  googleID    String @unique
+  email     String  @unique
+  password  String?
+  googleID    String? @unique
   tokenExpiry        DateTime?  
   image     String?
   createdAt DateTime @default(now())
@@ -40,7 +41,7 @@ model Profile {
   tagline   String?
   about     String?
   Skills  String[]
-  WorkExperience String
+  WorkExperience WorkInfo[]
   Projects Project[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -55,6 +56,15 @@ model Project{
   Profile Profile  @relation(fields: [profileId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+model WorkInfo{
+  id   String   @id @default(uuid())
+  company String
+  role   String
+  startYear  Int
+  endYear   Int? 
+  profileId String
+  Profile Profile  @relation(fields: [profileId], references: [id])
 }
 
 model Interview{
@@ -90,12 +100,12 @@ model Analytics {
   id        String   @id @default(uuid())
   interviewId String @unique
   Interview Interview @relation(fields: [interviewId], references: [id])
+  overallScore Int
   CommunicationScore Int
   TechnicalScore Int
   ProblemSolvingScore Int
   RelevanceScore Int
   VocabularyScore Int
-  QuestionsAskedScore Int[]
   TechnicalKeywords String[]
   KeyStrengths String[]
   GrowthAreas String[]
@@ -108,7 +118,7 @@ model Analytics {
 model Question{
   id        String   @id @default(uuid())
   question String 
-  answer String
+  score Int
   AnalyticsId String 
   Analytics Analytics @relation(fields: [AnalyticsId], references: [id])
 }
@@ -127,14 +137,15 @@ enum Level {
   INTERMEDIATE
   ADVANCED
 }
-
-enum Status {
-  IN_PROGRESS
-  COMPLETED
-}
-enum QuestionType{
+enum QuestionType {
   QUESTION
   ANSWER
   END
   VALIDATION
+  FORMALCHAT
+}
+
+enum Status {
+  IN_PROGRESS
+  COMPLETED
 }

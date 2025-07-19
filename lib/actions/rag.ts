@@ -3,6 +3,7 @@ import { GoogleGenerativeAI as GoogleGenAI } from "@google/generative-ai";
 import pdf from "pdf-parse";
 import { getStatus } from "../utils";
 import { Buffer } from 'buffer';
+import { setInterviewDetails } from "./api";
 
 const ai = new GoogleGenAI(process.env.APIKEY as string);
 
@@ -24,9 +25,8 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
             User Experience : 5 years,
            `;
         const model = ai.getGenerativeModel({
-            model: "gemini-2.0-flash",
+            model: "gemini-1.5-pro",
             generationConfig: {
-                temperature: 1.5,
                 responseMimeType: "application/json",
             },
         });
@@ -36,6 +36,7 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
             ]
         });
         const output = response.text().trim();
+            console.log(output);
         const data: JobDescription = JSON.parse(output);
 
         return data
@@ -50,12 +51,12 @@ export async function ResumeExtracter(pdfInput: string): Promise<Resume> {
         const systemInstruction = ` You are a smart AI Resume Extractor which takes pdf text as an input and returns the following details:-
            Skills , Work Experience , Projects 
            Output Format:-
-           {"Skills": string[], "WorkExperience": number, "Projects": [{ projectName: string, projectDescription: string}]}
+           {"Skills": string[], "WorkExperience": {title: string,company: string,startYear : number,endYear?: number}, "Projects": [{ projectName: string, projectDescription: string}]}
         `;
         const model = ai.getGenerativeModel({
-            model: "gemini-2.0-flash",
+            model: "gemini-1.5-pro",
             generationConfig: {
-                temperature: 1.5,
+                temperature: 0.0,
                 responseMimeType: "application/json",
             },
             systemInstruction: {
@@ -78,6 +79,13 @@ export async function ResumeExtracter(pdfInput: string): Promise<Resume> {
 }
 
 export async function InterviewTaking(interviewDetails: interviewDetails) {
+    try {
+        //interviewDetails.InterviewChatHistory slice last 3 messages
+        const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-3);
+        let message:interviewDetails= {
+            ...interviewDetails,InterviewChatHistory :lastThreeMessages
+        }
+    
     const systemInstruction = `You are an AI Interview Taker. You take job interviews of users based on job description , title , skills and experience.
         You will also be provided with chats history of the interview if provided , if not then you will start from scratch.
         
@@ -94,7 +102,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
             - VALIDATION :- this type means you will validate user answers if user provide an answer to your response type QUESTION
 
         Output Format :- 
-            {type:"FORMALCHAT | QUESTION | VALIDATION | END"  , content : string , score?: number}
+            {ContentType:"FORMALCHAT | QUESTION | VALIDATION | END"  , content : string , score?: number}
             score will be only in type VALIDATION , give score out of 100
 
         Example 
@@ -105,14 +113,14 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
             Experience: 5 years of 
             Interview Chat History: []
             timeLeft : 24:08
-         You : {type:"FORMALCHAT",content :"Good Evening , Mr Doe . Thank you for joining me today . Tell me a little about yourself and why you want to work with us? ."}
+         You : {ContentType:"FORMALCHAT",content :"Good Evening , Mr Doe . Thank you for joining me today . Tell me a little about yourself and why you want to work with us? ."}
         `;
     const model = ai.getGenerativeModel({
-        model: "gemini-2.0-flash",
-        generationConfig: {
-            temperature: 1.5,
-            responseMimeType: "application/json",
-        },
+       model: "gemini-2.5-pro",
+            generationConfig: {
+                temperature: 0.8,
+                responseMimeType: "application/json",
+            },
         systemInstruction: {
             role: "system",
             parts: [{ text: systemInstruction }]
@@ -120,16 +128,28 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
     });
     const { response } = await model.generateContent({
         contents: [
-            { role: "user", parts: [{ text: JSON.stringify(interviewDetails) }] }
+            { role: "user", parts: [{ text: JSON.stringify(message) }] }
         ]
     });
     const output = response.text().trim();
-    const data: InterviewChat = JSON.parse(output);
+    console.log(output);
+    const parse = JSON.parse(output);
+    let data:InterviewChat ={
+        ...parse,
+        Sender :"ASSISTANT"
+    }
     return data;
+    } catch (error) {
+         console.log(error);
+    }
 }
 
 
 export async function analytics(interviewDetails: interviewDetails, job: JobDescription) {
+    try {
+        let start= interviewDetails.startTime;
+        let end= new Date();
+        let duration = (end.getTime() - start.getTime()) / 1000;
     const questions = interviewDetails.InterviewChatHistory.filter((val) => val.ContentType == "QUESTION");
     const validate = interviewDetails.InterviewChatHistory.reduce<number[]>((acc, val) => {
         if (val.ContentType == "VALIDATION" && typeof val.score == "number") {
@@ -159,54 +179,17 @@ export async function analytics(interviewDetails: interviewDetails, job: JobDesc
     const interviewData: InterviewData = {
         candidateName: interviewDetails.name,
         position: job.jobTitle,
-        duration: "20 minutes",
+        duration: duration+ " seconds",
         overallScore,
         questionPerformance,
         ...technicalKeywords,
     };
-    return interviewData;
+    await setInterviewDetails(interviewData,interviewDetails,end)
+    return interviewData;} catch (error) {
+         console.error(error);
+    }
 }
-async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewInsights> {
-    let ex: InterviewInsights = {
-        InterviewScores: {
-            communication: 85,
-            technicalKnowledge: 72,
-            problemSolving: 80,
-            vocabulary: 75,
-            relevance: 82,
-        },
-        technicalKeywords: [
-            "React",
-            "JavaScript",
-            "TypeScript",
-            "Redux",
-            "Hooks",
-            "Components",
-            "State Management",
-            "API Integration",
-        ],
-        strengths: [
-            "Strong understanding of React fundamentals",
-            "Good communication skills and clear explanations",
-            "Demonstrates practical experience with modern tools",
-            "Shows enthusiasm for learning new technologies",
-        ],
-        areasForImprovement: [
-            "Deepen knowledge of advanced state management patterns",
-            "Improve understanding of performance optimization techniques",
-            "Practice explaining complex technical concepts more concisely",
-            "Strengthen testing methodology knowledge",
-        ],
-        hrInsights: {
-            technicalCompetency: "Mid-level. Shows solid foundation but needs growth in advanced concepts.",
-            experienceLevel: "Approximately 3-4 years of relevant experience.",
-            culturalFit: "Good fit. Demonstrates collaborative mindset and growth orientation.",
-            learningPotential: "High. Shows curiosity and willingness to learn new technologies.",
-            interviewReadiness: 75,
-        },
-        aiNotes:
-            "The candidate demonstrated a solid understanding of React fundamentals and showed good problem-solving approach. Communication was clear and professional throughout the interview. Some hesitation was noted when discussing advanced state management patterns, indicating an area for potential growth. Overall performance suggests readiness for a mid-level position with mentorship opportunities for advancement.",
-    };
+async function getTechnicalKeywords(answer: InterviewChat[]) : Promise<InterviewInsights>{
 
     const systemInstruction = `You are an AI Interview Evaluator. Your job is to analyze a candidate's answers from an AI-powered mock interview and return structured JSON data as per the format described below.
 
@@ -240,9 +223,9 @@ async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewI
                `
 
             const model = ai.getGenerativeModel({
-            model: "gemini-2.0-flash",
+            model: "gemini-2.5-pro",
             generationConfig: {
-                temperature: 1.5,
+                temperature: 0.8,
                 responseMimeType: "application/json",
             },
             systemInstruction: {
@@ -260,9 +243,9 @@ async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewI
     const data: InterviewInsights = JSON.parse(output);
 
     return data;
+        
 }
-export async function parsePdfIfMaxTwoPages(base64:string) {
-    try {
+async function parsePdfIfMaxTwoPages(base64:string) {
    const base64Data = base64.split(";base64,").pop();
 
   if (!base64Data) {
@@ -270,7 +253,6 @@ export async function parsePdfIfMaxTwoPages(base64:string) {
   }
       const buffer = Buffer.from(base64Data, "base64");
     
-      // ✅ Parse PDF to check page count
       const data = await pdf(buffer);
     console.log(data.numpages)
       if (data.numpages >= 3) {
@@ -279,9 +261,6 @@ export async function parsePdfIfMaxTwoPages(base64:string) {
     
       console.log("PDF is valid. Continue processing...");
           return data.text.trim();
-    } catch (error) {
-        console.log(error);
-        return '';
-    }
+  
 }
 
