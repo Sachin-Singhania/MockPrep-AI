@@ -7,7 +7,7 @@ import { setInterviewDetails } from "./api";
 
 const ai = new GoogleGenAI(process.env.APIKEY as string);
 
-export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription> {
+export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription| string> {
     try {
         const query = ` Create a Job Description based on user details.
         User Details:
@@ -15,18 +15,30 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
         User Skills : ${UserDetails.userSkills.join(",")},
         User Experience : ${UserDetails.userExperience} years.,
     
-    
-        Output :- 
+        INSTRUCTION:-
+        - If u feel user tagline is random, non-sensical, or meaningless tagline then tell user that its invalid 
+        OUTPUT FORMAT :- 
         {"output": "{jobTitle: string, jobDescription: string, skills: string[], experience: number}"}
+        {"output": "Your tagline seems invalid i can't generate a job description for you."}
         
         Example :-
-           User:-User Tagline : "Full Stack Developer",
+           User:-User Tagline : "Reactjs",
             User Skills : "JavaScript, React, Node.js",
-            User Experience : 5 years,
+            User Experience : 2,
+        You : - {"output": {
+                "jobTitle": "React Developer",
+                "jobDescription": "We are seeking a skilled and passionate React Developer to join our dynamic team. As a React Developer, you will be responsible for developing and implementing user interface components using React concepts and workflows. You will also be responsible for integrating these components with backend services built with Node.js and Next.js. The ideal candidate has a strong understanding of JavaScript, HTML, and CSS, and is proficient in building responsive and accessible web applications. You will be working on projects that require attention to detail and a commitment to writing clean, maintainable code.",
+                "skills": [
+                "react",
+                "nodejs",
+                "nextjs"
+                ],
+                "experience": 2}}
            `;
         const model = ai.getGenerativeModel({
-            model: "gemini-1.5-pro",
+            model: "gemini-2.0-flash",
             generationConfig: {
+                temperature: 0.6,
                 responseMimeType: "application/json",
             },
         });
@@ -36,25 +48,29 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
             ]
         });
         const output = response.text().trim();
-            console.log(output);
-        const data: JobDescription = JSON.parse(output);
-
-        return data
+            
+        const data = JSON.parse(output);
+        const res:JobDescription | string= data.output;
+        return res
     } catch (error) {
+        console.log(error)
         throw new Error("Something Went Wrong");
     }
 }
 
-export async function ResumeExtracter(pdfInput: string): Promise<Resume> {
+export async function ResumeExtracter(pdfInput: string): Promise<Resume | string> {
     try {
         const pdfData = await parsePdfIfMaxTwoPages(pdfInput);
         const systemInstruction = ` You are a smart AI Resume Extractor which takes pdf text as an input and returns the following details:-
            Skills , Work Experience , Projects 
+           Instructions:-
+            - If data inside the pdf is not a resume then just return the string "Invalid PDF"
            Output Format:-
-           {"Skills": string[], "WorkExperience": {title: string,company: string,startYear : number,endYear?: number}, "Projects": [{ projectName: string, projectDescription: string}]}
-        `;
+           {"output":{"Skills": string[], "WorkExperience": {role: string,company: string,startYear : number,endYear?: number}, "Projects": [{ name: string, description: string}]}}
+            {"output":string}
+           `;
         const model = ai.getGenerativeModel({
-            model: "gemini-1.5-pro",
+            model: "gemini-1.5-flash",
             generationConfig: {
                 temperature: 0.0,
                 responseMimeType: "application/json",
@@ -70,9 +86,11 @@ export async function ResumeExtracter(pdfInput: string): Promise<Resume> {
             ]
         });
         const output = response.text().trim();
-        const data: Resume = JSON.parse(output);
-        return data;
+        const data= JSON.parse(output);
+        const result : Resume | string = data.output;
+        return result;
     } catch (error) {
+        console.log(error)
         throw new Error(`Error in Resume Extracter:`);
     }
 

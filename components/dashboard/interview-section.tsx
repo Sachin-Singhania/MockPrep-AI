@@ -17,6 +17,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Calendar, Clock, Star, Briefcase, Sparkles, Play } from "lucide-react"
+import { useChatStore } from "@/store/store"
+import { fillsJob } from "@/lib/actions/rag"
+import { useRouter } from "next/navigation"
 
 const pastInterviews = [
   {
@@ -50,26 +53,58 @@ const pastInterviews = [
 
 export function InterviewSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [formData, setFormData] = useState({
+  const {profile}=useChatStore();
+  const nav= useRouter();
+  const [formData, setFormData] = useState<JobDescription>({
     jobTitle: "",
-    description: "",
+    jobDescription: "",
     skills: "",
-    experience: "",
-    level: "",
+    experience: 0,
+    difficulty: "EASY",
   })
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  const handleInputChange = (field: keyof JobDescription, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: field === "experience" ? Number(value) : value,
+    }))
   }
 
-  const generateJobDetails = () => {
-    // AI generation logic would go here
-    console.log("Generating job details with AI...")
+  const generateJobDetails = async () => {
+    if(!profile) return;
+    if(!profile.tagline) return;
+    let experience = profile.WorkExperience;
+    let currentYear= new Date().getFullYear();
+    let min=currentYear,max=0;
+    for (let index = 0; index < experience.length; index++) {
+      const {startYear,endYear} = experience[index];
+      if(endYear){
+        if(max<endYear){
+          max=endYear;
+        }
+      }
+      if(min>startYear){
+        min=startYear;
+      }
+    }
+    if(max<=currentYear) max =currentYear;
+    const data:UserDetails={
+      userExperience : max-min==0 ? 0 : max-min  ,
+      userSkills : profile.Skills,
+      userTagline : profile.tagline,
+    }
+    const response = await fillsJob(data)
+     if(typeof response ==="string"){
+      console.log(response);
+     }else{
+      setFormData(response);
+     }
+    return;
   }
 
   const startInterview = () => {
-    // Redirect to interview page
-    window.location.href = `/interview/session?title=${encodeURIComponent(formData.jobTitle)}`
+    nav.push (`/interview/session?title=${encodeURIComponent(formData.jobTitle)}`)
+    return;
   }
 
   return (
@@ -105,15 +140,23 @@ export function InterviewSection() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="level">Difficulty Level</Label>
-                  <Select value={formData.level} onValueChange={(value) => handleInputChange("level", value)}>
+                  <Label >Difficulty Level</Label>
+                  <Select value={formData.difficulty ?? "SELECT"} onValueChange={(value) => handleInputChange("difficulty", value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
+                        <SelectValue placeholder="Select level">
+                        {formData.difficulty === "EASY"
+                          ? "Easy"
+                          : formData.difficulty === "MEDIUM"
+                          ? "Medium"
+                          : formData.difficulty === "HARD"
+                          ? "Hard"
+                          : ""}
+                      </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="easy">Easy</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="hard">Hard</SelectItem>
+                      <SelectItem value="EASY">Easy</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="HARD">Hard</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -125,8 +168,8 @@ export function InterviewSection() {
                   id="description"
                   rows={4}
                   placeholder="Paste the job description here..."
-                  value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  value={formData.jobDescription}
+                  onChange={(e) => handleInputChange("jobDescription", e.target.value)}
                 />
               </div>
 
@@ -158,7 +201,7 @@ export function InterviewSection() {
                 </Button>
                 <Button
                   onClick={startInterview}
-                  disabled={!formData.jobTitle}
+                  disabled={!formData.jobTitle || !formData.jobDescription || !formData.skills || !formData.experience}
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                 >
                   <Play className="w-4 h-4 mr-2" />
@@ -242,7 +285,7 @@ export function InterviewSection() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {pastInterviews.map((interview) => (
+            {pastInterviews?.map((interview) => (
               <div
                 key={interview.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"

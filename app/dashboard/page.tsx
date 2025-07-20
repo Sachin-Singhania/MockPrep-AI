@@ -10,6 +10,8 @@ import { ProfileSection } from "@/components/dashboard/profile-section"
 import { InterviewSection } from "@/components/dashboard/interview-section"
 import { getProfile } from "@/lib/actions/api"
 import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useChatStore } from "@/store/store"
 
 type SidebarOption = "dashboard" | "profile" | "interviews"
 
@@ -44,7 +46,7 @@ export default function DashboardPage() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">InterviewAI</h1>
+            <h1 className="text-xl font-bold text-gray-900">MockPrep</h1>
           </div>
         </div>
 
@@ -96,17 +98,47 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
-  const [Profile, setProfile] = useState({})
   const {data:session,status} = useSession();  
+  const {setUser,setProfile,user,profile}=useChatStore();
+  const nav= useRouter();
   useEffect(() => {
-    if (status !== "authenticated" || !session?.user?.userId) return;
-    console.log("HELL 2");
-    async function profile(userId:string) {
-      return getProfile(userId);
+    if (status === "loading") return;
+    if (status == "unauthenticated" || !session?.user?.userId || !session.user.dashboardId) {
+      if (user?.userId){
+          profile (user.userId);
+        return;
+      }
+     nav.push("/");
+     return;
+    };
+    if(session.user.userId && session.user.dashboardId){
+      const userval= {
+         userId :session.user.userId,
+         dashboardId :session.user.dashboardId,
+          name : session.user.name as string,
+          email : session.user.email as string,
+          profilePic :session.user.image as string
+      }
+      setUser(userval);
+      profile (session.user.userId);
+      return;
     }
-    setProfile(profile(session.user.userId));
-    console.log(Profile)
+    async function profile(userId:string) {
+      const {data}= await getProfile(userId);
+      if(!data) return;
+      const profile ={
+        profileId : data.Profile?.id,
+        about : data.Profile?.about ? data.Profile?.about : undefined,
+        tagline : data.Profile?.tagline ? data.Profile?.tagline : undefined,
+        interview : data.Interview ?? [],
+        Projects : data.Profile?.Projects ?? [],
+        Skills : data.Profile?.Skills ?? [],
+        WorkExperience : data.Profile?.WorkExperience ?? [],
+      }
+      setProfile(profile)
+    }
   }, [status])
+  
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -121,7 +153,7 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Interviews Completed</p>
-                <p className="text-2xl font-bold text-gray-900">12</p>
+                <p className="text-2xl font-bold text-gray-900">{profile?.interview?.length==0 ? 0 : profile?.interview?.length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-blue-600" />
@@ -135,7 +167,18 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Average Score</p>
-                <p className="text-2xl font-bold text-gray-900">85%</p>
+                <p className="text-2xl font-bold text-gray-900">{
+                  profile?.interview && profile.interview.length > 0
+                    ? (
+                        profile.interview.reduce(
+                          (sum, interview) =>
+                            sum +
+                            (interview.Analytics?.overallScore ?? 0),
+                          0
+                        ) / profile.interview.length
+                      ).toFixed(2)
+                    : 0
+                  }%</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <Star className="w-6 h-6 text-green-600" />
@@ -149,7 +192,16 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Practice Hours</p>
-                <p className="text-2xl font-bold text-gray-900">24h</p>
+                <p className="text-2xl font-bold text-gray-900">{
+                     profile?.interview && profile.interview.length > 0
+                       ? profile.interview.reduce((sum, interview) => {
+                           if (interview.endTime && interview.startTime) {
+                             return sum + Math.floor((interview.endTime.getTime() - interview.startTime.getTime()) / 60000);
+                           }
+                           return sum;
+                         }, 0)
+                       : 0
+                  }</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <Clock className="w-6 h-6 text-purple-600" />
@@ -163,7 +215,15 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Success Rate</p>
-                <p className="text-2xl font-bold text-gray-900">92%</p>
+                <p className="text-2xl font-bold text-gray-900">{
+                  profile?.interview && profile.interview.length > 0
+                    ? (
+                        profile.interview.filter(
+                          (interview) => (interview.Analytics?.overallScore ?? 0) >= 65
+                        ).length / profile.interview.length
+                      ).toFixed(2)
+                    : 10
+                  }%</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                 <Star className="w-6 h-6 text-orange-600" />
@@ -194,35 +254,49 @@ function DashboardContent() {
     {/* Profile Header */}
     <div className="flex items-center space-x-5">
       <Avatar className="w-20 h-20 shadow border border-gray-200">
-        <AvatarImage src="/placeholder.svg?height=80&width=80" />
-        <AvatarFallback className="bg-blue-600 text-white text-2xl">JD</AvatarFallback>
+        <AvatarImage src={user?.profilePic as string} />
+        <AvatarFallback className="bg-blue-600 text-white text-2xl">{user?.name ? user?.name?.slice(1) : 'J'}</AvatarFallback>
       </Avatar>
       <div className="flex-1">
-        <h3 className="text-2xl font-bold text-gray-900">John Doe</h3>
+        <h3 className="text-2xl font-bold text-gray-900">{ user?.name ? user?.name : 'John Doe'}</h3>
         <div className="flex items-center text-gray-500 mt-1">
           <Mail className="w-4 h-4 mr-2" />
-          <span className="text-sm">john.doe@example.com</span>
+          <span className="text-sm">{user?.email ? user?.email : 'john.doe@example.com'}</span>
         </div>
       </div>
     </div>
 
     {/* Tagline */}
     <div className="bg-gradient-to-r from-indigo-50 to-blue-50 p-5 rounded-xl shadow-sm border border-indigo-100">
-      <h4 className="font-semibold text-gray-900 mb-1">Professional Tagline</h4>
+      <h4 className="font-semibold text-gray-900 mb-1">{profile?.tagline ? profile?.tagline : 'Complete your profile to see your tagline'}</h4>
       <p className="text-gray-700 text-sm leading-relaxed">
-        "Passionate Full Stack Developer with expertise in modern web technologies. Committed to building
-        scalable applications and delivering exceptional user experiences."
+        {profile?.about ? profile?.about : 'Complete your profile to see your tagline'}
       </p>
     </div>
 
     {/* Work Experience */}
     <div className="grid grid-cols-2 gap-4">
       <div className="bg-gray-50 border border-gray-200 p-5 rounded-xl shadow-sm text-center">
-        <div className="text-4xl font-extrabold text-gray-900 mb-1">5</div>
+        <div className="text-4xl font-extrabold text-gray-900 mb-1"> {
+   profile?.WorkExperience && profile?.WorkExperience?.length > 0
+      ? (() => {
+        let currentYear= new Date().getFullYear();
+          let { min, max } :{min:number,max:number} = profile?.WorkExperience.reduce(
+            ({ min, max }, { startYear, endYear }) => ({
+              min: Math.min(min, startYear),
+              max: endYear ? Math.max(max, endYear) : max,
+            }),
+            { min: currentYear, max: 0 }
+          );
+           if(max<=currentYear) max =currentYear;
+          return max - min;
+        })()
+      : 0
+  }</div>
         <div className="text-sm text-gray-600">Years Experience</div>
       </div>
       <div className="bg-gray-50 border border-gray-200 p-5 rounded-xl shadow-sm text-center">
-        <div className="text-4xl font-extrabold text-gray-900 mb-1">3</div>
+        <div className="text-4xl font-extrabold text-gray-900 mb-1">{profile?.Projects ? profile?.Projects?.length : 0}</div>
         <div className="text-sm text-gray-600">Projects Completed</div>
       </div>
     </div>
@@ -231,7 +305,7 @@ function DashboardContent() {
     <div>
       <h4 className="font-semibold text-gray-900 mb-3">Top Skills</h4>
       <div className="flex flex-wrap gap-2">
-        {["React", "Node.js", "TypeScript", "AWS", "MongoDB"].map((skill) => (
+        {profile?.Skills.map((skill) => (
           <Badge
             key={skill}
             variant="secondary"
@@ -243,11 +317,6 @@ function DashboardContent() {
       </div>
     </div>
 
-    {/* Location */}
-    <div className="flex items-center text-gray-500">
-      <MapPin className="w-4 h-4 mr-2" />
-      <span className="text-sm">San Francisco, CA</span>
-    </div>
   </CardContent>
 </Card>
 

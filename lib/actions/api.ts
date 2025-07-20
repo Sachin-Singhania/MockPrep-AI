@@ -8,8 +8,6 @@ export async function getProfile(userId:string) {
             where:{
                 userId 
             },select:{
-                id :true,
-                createdAt :true,
                 Profile :{
                     select:{
                         id :true,
@@ -34,6 +32,9 @@ export async function getProfile(userId:string) {
                         about :true,
                     }
                 },Interview :{
+                    where:{
+                        status : "COMPLETED"
+                    },
                     select :{
                      id :true,
                      Analytics :{
@@ -44,7 +45,7 @@ export async function getProfile(userId:string) {
                      },
                      startTime : true,
                      endTime : true,
-                     _count : true   
+                    //  _count : true   
                     }
                 }
             }
@@ -60,138 +61,16 @@ export async function getProfile(userId:string) {
         }
     }
 }
-async function setProfile(userId: string, data: {
-  about?: string;
-  tagline?: string;
-  skills?: string[];
-  projects?: { id?: string; name: string; description: string }[];
-  workExperience?: {
-    id?: string;
-    company: string;
-    role: string;
-    startYear: number;
-    endYear?: number;
-  }[];
-},updateType?:"PROFILE" | "WORK" | "PROJECTS" | "SKILLS") {
-    try {
-        
-        const dashboard = await prisma.dashboard.findUnique({
-          where: { userId },
-          select: { id: true, Profile: { select: { id: true } } }
-        });
-      
-        if (!dashboard) throw new Error("Dashboard not found");
-      
-        const profileId = dashboard.Profile?.id;
-      
-        // If profile does not exist, create a new one
-        if (!profileId) {
-          await prisma.profile.create({
-            data: {
-              dashboardId: dashboard.id,
-              about: data.about ?? '',
-              tagline: data.tagline ?? '',
-              Skills: data.skills ?? [],
-              Projects: data.projects
-                ? { create: data.projects.map(p => ({
-                    name: p.name,
-                    description: p.description,
-                  })) }
-                : undefined,
-              WorkExperience: data.workExperience
-                ? {
-                    create: data.workExperience.map(w => ({
-                      company: w.company,
-                      role: w.role,
-                      startYear: w.startYear,
-                      endYear: w.endYear,
-                    }))
-                  }
-                : undefined
-            }
-          });
-          return;
-        }
-        const dashboardId=dashboard.id;
-        switch (updateType) {
-        case "PROFILE":
-          await prisma.profile.update({
-            where: { dashboardId },
-            data: {
-              about: data.about ?? '',
-              tagline: data.tagline ?? '',
-            }
-          });
-          break;
-      
-        case "SKILLS":
-          await prisma.profile.update({
-            where: { dashboardId },
-            data: {
-              Skills: data.skills ?? [],
-            }
-          });
-          break;
-      
-        case "WORK":
-      if (data.workExperience) {
-        await Promise.all(
-          data.workExperience.map(w =>
-              prisma.workInfo.upsert({
-                  where: { id: w.id ?? "non-existent-id" }, // 'id' required for update
-                  update: {
-                  company: w.company,
-                  role: w.role,
-                  startYear: w.startYear,
-                  endYear: w.endYear,
-                  },
-                  create: {
-                  profileId,
-                  company: w.company,
-                  role: w.role,
-                  startYear: w.startYear,
-                  endYear: w.endYear,
-                  },
-              })
-              )
-          );
-          }
-          break;
-      
-      case "PROJECTS":
-        if (data.projects) {
-          await Promise.all(
-            data.projects.map(p =>
-              prisma.project.upsert({
-                where: { id: p.id ?? "___" }, 
-                update: {
-                  name: p.name,
-                  description: p.description
-                },
-                create: {
-                  profileId,            
-                  name: p.name,
-                  description: p.description
-                }
-              })
-            )
-          );
-        }
-        break;
-      }
-    } catch (error) {
-        
-    }
-}
 
-async function getInterviewDetails(analyticsId:string) {
-    if (!analyticsId) {
+
+async function getInterviewDetails(interviewId:string) {
+    if (!interviewId) {
         return {
             message: " Analytics ID is required",
             status: 400
         }
     }
-    const interview = await prisma.analytics.findUnique({ where: { id: analyticsId },
+    const interview = await prisma.analytics.findUnique({ where: { interviewId },
     select :{
         CommunicationScore : true,
         ProblemSolvingScore : true,
@@ -301,6 +180,8 @@ export async function createInterview(dashboardId : string, interviewData: JobDe
     }
 }
 export async function register(type : "SIGNIN"|"SIGNUP",email : string, password: string,name?:string) {
+    try {
+        
         if (!email || !password || (type=="SIGNUP" && !name)) {
             return {
                 message: "All Credentials are required",
@@ -320,12 +201,22 @@ export async function register(type : "SIGNIN"|"SIGNUP",email : string, password
             }else{
                 const isValid = bcrypt.compareSync(password, user.password);
                 if (isValid) {
-                    const data= {
+                    const data:{
+                         name: string | null;
+                        id: string;
+                        email: string;
+                        image: string | null;
+                        dashboards: {
+                            id: string;
+                        } | null;
+                    }= {
                         id: user.id,
                         email: user.email,
                         name: user.name,
                         image: user.image,
-                        dashboards : user.dashboards?.id
+                        dashboards :{
+                            id: user.dashboards?.id as string
+                        }
                     }
                     return {
                         message: "User signed in successfully",
@@ -349,5 +240,8 @@ export async function register(type : "SIGNIN"|"SIGNUP",email : string, password
         status: 201,
         data : response
         }
+    }
+}catch (error) {
+        
     }
 }

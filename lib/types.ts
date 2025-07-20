@@ -3,21 +3,22 @@ interface UserDetails {
     userSkills: string[];
     userExperience: number;
 }
+type Project = {
+    id? : string;
+    name: string;
+    description: string;
+}
+interface Resume {
+    Skills: string[];
+    WorkExperience: Experience[],
+    Projects: Project[]
+}
 interface JobDescription {
     jobTitle: string;
     jobDescription: string;
     skills: string;
     experience: number;
     difficulty : "EASY" | "MEDIUM" | "HARD";
-}
-type Project = {
-    projectName: string;
-    projectDescription: string;
-}
-interface Resume {
-    Skills: string[];
-    WorkExperience: Experience[],
-    Projects: Project[]
 }
 interface interviewDetails {
     id? : string;
@@ -28,10 +29,11 @@ interface interviewDetails {
     startTime: Date,
 }
 interface Experience {
-  title: string
+  id? :string
+  role: string
   company: string
   startYear : number
-  endYear?: number
+  endYear?: number | null
 }
 type InterviewChat =
     | {
@@ -78,3 +80,34 @@ interface InterviewInsights {
     };
     aiNotes: string;
 };
+interface getProfile{
+  id: string;
+  createdAt: Date;
+  Profile: {
+    id: string;
+    tagline: string | null;
+    about: string | null;
+    Skills: string[];
+    WorkExperience: {
+      id: string;
+      company: string;
+      role: string;
+      startYear: number;
+      endYear: number | null;
+    }[];
+    Projects: {
+      id: string;
+      name: string;
+      description: string;
+    }[];
+  } | null;
+  Interview: {
+    id: string;
+    startTime: Date;
+    endTime: Date | null;
+    Analytics: {
+      id: string;
+      overallScore: number;
+    } | null;
+  }[];
+}

@@ -7,6 +7,8 @@ import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { signIn } from "next-auth/react"
 import { register } from "@/lib/actions/api"
+import { useChatStore } from "@/store/store"
+import { useRouter } from "next/navigation"
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -14,7 +16,8 @@ export default function SignInPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setname] = useState("")
-
+  const {setUser}=useChatStore();
+  const nav= useRouter();
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
@@ -27,12 +30,26 @@ export default function SignInPage() {
     if(isRegister) type = "SIGNUP"
     else type = "SIGNIN"
     if (email && password ) {
+      let response;
       if(type === "SIGNUP" ){
         if (name.trim()=="") return; 
-        await register(type, email, password, name);
+        response=await register(type, email, password, name);
       }
       if (type === "SIGNIN"){
-        await register(type, email, password);
+        response=await register(type, email, password);
+      }
+      if(response){
+        if (response.data){
+          const userval= {
+              userId :response.data.id,
+              dashboardId :response.data.dashboards?.id as string,
+              name : response.data.name as string,
+              email : response.data.email as string,
+              profilePic :response.data.image as string
+           }
+          setUser(userval);
+          nav.push("/dashboard");
+        }
       }
   }}
   return (
@@ -48,7 +65,7 @@ export default function SignInPage() {
             {isRegister ? "Create an Account" : "Welcome Back!"}
           </h1>
           <p className="text-gray-600">
-            {isRegister ? "Join InterviewAI today." : "Sign in to continue your interview practice."}
+            {isRegister ? "Join MockPrep today." : "Sign in to continue your interview practice."}
           </p>
         </div>
 
@@ -106,17 +123,17 @@ export default function SignInPage() {
         <div className="mt-8 text-center text-sm text-gray-600">
           {isRegister ? (
             <>
-              Already have an account?{" "}
-              <Button  onClick={() => setIsRegister(false)} className="text-blue-600 hover:underline">
+              Already have an account?
+              <div  onClick={() => setIsRegister(false)} className="text-blue-600 hover:underline cursor-pointer">
                 Sign In
-              </Button>
+              </div>
             </>
           ) : (
             <>
-              Don&apos;t have an account?{" "}
-              <Button  onClick={() => setIsRegister(true)} className="text-blue-600 hover:underline">
+              Don&apos;t have an account?
+              <div  onClick={() => setIsRegister(true)} className="text-blue-600 hover:underline cursor-pointer">
                 Register
-              </Button>
+              </div>
             </>
           )}
         </div>

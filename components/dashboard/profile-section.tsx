@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,24 +12,17 @@ import { Briefcase, Code, Plus, X, Upload, FileText, Sparkles } from "lucide-rea
 import { ResumeExtracter } from "@/lib/actions/rag"
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@radix-ui/react-dialog"
 import { DialogFooter, DialogHeader } from "../ui/dialog"
-
+import { useChatStore } from "@/store/store"
+import { Profile } from "@/store/store"
 
 
 export function ProfileSection() {
   const imageInputref = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // All state hooks
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [tagline, setTagline] = useState("")
-  const [about, setAbout] = useState("")
-  const [skills, setSkills] = useState<string[]>([])
-  const [newSkill, setNewSkill] = useState("")
-  const [projects, setProjects] = useState<Project[]>([])
-  const [experiences, setExperiences] = useState<Experience[]>([])
-  const [avatar, setAvatar] = useState<File | null>(null)
-  const [resume, setResume] = useState<File | null>(null)
+ 
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const [_resume, setResume] = useState<File | null>(null)
+  const { profile, user ,setProfile} = useChatStore();
 
   const handleButtonClickImage = () => {
     imageInputref.current?.click()
@@ -50,11 +43,19 @@ export function ProfileSection() {
       reader.onload = async () => {
         const base64 = reader.result?.toString()
         if (base64) {
-          const { Projects, Skills, WorkExperience } = await ResumeExtracter(base64)
-          // You can update states here later
-          setExperiences(WorkExperience)
-          setSkills(Skills);
-          setProjects(Projects)
+          const hey = await ResumeExtracter(base64)
+          if (typeof hey === 'string') {
+            alert(hey)
+          } else {
+            if(profile){
+              setProfile({
+                ...profile,
+                Projects: hey.Projects,
+                Skills: hey.Skills,
+                WorkExperience: hey.WorkExperience,
+              });
+            }
+          }
         }
       }
       reader.readAsDataURL(file)
@@ -65,22 +66,14 @@ export function ProfileSection() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) setAvatar(file)
-  }
-
-  const addSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()])
-      setNewSkill("")
+    if (file) {
+      const hey = URL.createObjectURL(file);
+      setAvatar(hey);
     }
   }
 
-  const removeSkill = (skillToRemove: string) => {
-    setSkills(skills.filter((skill) => skill !== skillToRemove))
-  }
-  const handleSaveInfo= () =>{
-    
-  }
+
+
 
   return (
     <div className="p-8">
@@ -88,7 +81,6 @@ export function ProfileSection() {
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Profile</h2>
         <p className="text-gray-600">Manage your personal information and professional details</p>
       </div>
-
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Profile Picture & Basic Info */}
         <div className="lg:col-span-1">
@@ -98,7 +90,7 @@ export function ProfileSection() {
             </CardHeader>
             <CardContent className="text-center">
               <Avatar className="w-32 h-32 mx-auto mb-4">
-                <AvatarImage src={avatar ? URL.createObjectURL(avatar) : "/placeholder.svg?height=128&width=128"} />
+                <AvatarImage src={avatar ? avatar : "/placeholder.svg?height=128&width=128"} />
                 <AvatarFallback className="bg-blue-600 text-white text-2xl">JD</AvatarFallback>
               </Avatar>
               <Input
@@ -144,28 +136,100 @@ export function ProfileSection() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Personal Details */}
         <div className="lg:col-span-2 space-y-6">
+          <ProfileCard/>
+           <SkillCard /> 
+          <Exp/>  
+          <ProjectCard/>    
+        </div>
+      </div>
+    </div>
+  )
+}
+const Exp= ()=>{
+  const [experiences, setExperiences] = useState<Experience[]>([])
+  return (
+    <>
           <Card>
             <CardHeader>
-              <CardTitle>Personal Details</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Work Experience</CardTitle>
+                <button
+                  className="text-sm px-3 py-1 bg-black text-white rounded-md hover:bg-gray-500 transition"
+                >
+                  Save
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {experiences?.map((val) => (
+                  <div key={val.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{val.role}</p>
+                        <p className="text-sm text-gray-600">
+                          {val.company} •{" "}
+                          {typeof val.endYear === "number"
+                            ? val.endYear - val.startYear === 0
+                              ? "<1 years"
+                              : `${val.endYear - val.startYear} years`
+                            : `${new Date().getFullYear() - val.startYear} years`}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">{val.endYear ? `${val.startYear}-${val.endYear}` : "Current"}</Badge>
+                  </div>
+                ))}
+              </div>
+
+              <AddExperienceDialog onAddExperience={(exp) => setExperiences([...experiences, exp])} />
+            </CardContent>
+          </Card>
+    </>
+  )
+}
+const ProfileCard = () => {
+    const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [tagline, setTagline] = useState("")
+  const [about, setAbout] = useState("")
+  return(
+    <>
+    <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Personal Details</CardTitle>
+                <button
+                  className="text-sm px-3 py-1 bg-black text-white rounded-md hover:bg-gray-500 transition"
+                >
+                  Save
+                </button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Name</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="John Doe" />
+                  <Input id="name" value={name} onChange={(e) =>{
+                          setName(e.target.value)
+
+                  } } placeholder="John Doe" />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="john@example.com" />
+                  <Input id="email" value={email}  type="email" placeholder="john@example.com" disabled />
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="tagline">Tagline</Label>
-                <Input id="tagline" value={tagline} onChange={(e) => setTagline(e.target.value)} placeholder="Full Stack Developer" />
+                <Input id="tagline" value={tagline} onChange={(e) =>{
+                    setTagline(e.target.value)
+                } } placeholder="Full Stack Developer" />
               </div>
 
               <div>
@@ -173,21 +237,46 @@ export function ProfileSection() {
                 <Textarea
                   id="about"
                   value={about}
-                  onChange={(e) => setAbout(e.target.value)}
+                  onChange={(e) =>{
+                setAbout(e.target.value)
+                  }}
                   rows={4}
                 />
               </div>
             </CardContent>
           </Card>
+    </>
+  )
+}
+const SkillCard = () => {
+  const [skills, setSkills] = useState<string[]>([])
+  const [newSkill, setNewSkill] = useState("")
+    const addSkill = () => {
+    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
+      setSkills([...skills, newSkill.trim()])
+      setNewSkill("")
+    }
+  }
 
-          {/* Skills */}
-          <Card>
+  const removeSkill = (skillToRemove: string) => {
+    setSkills(skills.filter((skill) => skill !== skillToRemove))
+  }
+  return(
+    <>
+   <Card>
             <CardHeader>
-              <CardTitle>Skills</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Skills</CardTitle>
+                <button
+                  className="text-sm px-3 py-1 bg-black text-white rounded-md hover:bg-gray-500 transition"
+                >
+                  Save
+                </button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-4">
-                {skills.map((skill) => (
+                {skills?.map((skill) => (
                   <Badge key={skill} variant="secondary" className="px-3 py-1">
                     {skill}
                     <button onClick={() => removeSkill(skill)} className="ml-2 text-gray-500 hover:text-red-500">
@@ -209,69 +298,39 @@ export function ProfileSection() {
               </div>
             </CardContent>
           </Card>
-
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Work Experience</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {experiences?.map((val, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{val.title}</p>
-                        <p className="text-sm text-gray-600">
-                          {val.company} •{" "}
-                          {typeof val.endYear === "number"
-                            ? val.endYear - val.startYear === 0
-                              ? "<1 years"
-                              : `${val.endYear - val.startYear} years`
-                            : `${new Date().getFullYear() - val.startYear} years`}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">{val.endYear ? `${val.startYear}-${val.endYear}` : "Current"}</Badge>
-                  </div>
-                ))}
-              </div>
-
-                 <AddExperienceDialog onAddExperience={(exp) => setExperiences([...experiences, exp])} />
-            </CardContent>
-          </Card>
-
-          {/* Projects */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {projects.map((project,index) => (
-                  <div key={index+1} className="p-4 border rounded-lg">
-                    <h4 className="font-medium mb-2">{project.projectName}</h4>
-                    <p className="text-sm text-gray-600">{project.projectDescription}</p>
-                  </div>
-                ))}
-              </div>
-          <AddProjectDialog onAddProject={(proj) => setProjects([...projects, proj])} />
-
-            </CardContent>
-          </Card>
-
-          <div className="flex justify-end">
-            <Button className="px-8" onClick={handleSaveInfo}>Save Changes</Button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </>
   )
 }
-
+const ProjectCard = () => {
+    const [projects, setProjects] = useState<Project[]>([])
+  return (
+    <>
+      <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Projects</CardTitle>
+                <button
+                  className="text-sm px-3 py-1 bg-black text-white rounded-md hover:bg-gray-500 transition"
+                >
+                  Save
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {projects?.map((project) => (
+                  <div key={project.id} className="p-4 border rounded-lg">
+                    <h4 className="font-medium mb-2">{project.name}</h4>
+                    <p className="text-sm text-gray-600">{project.description}</p>
+                  </div>
+                ))}
+              </div>
+              <AddProjectDialog onAddProject={(proj) => setProjects([...projects, proj])} />
+            </CardContent>
+          </Card>
+    </>
+  )
+}
 interface Props {
   onAddExperience: (exp: Experience) => void;
 }
@@ -286,7 +345,7 @@ const AddExperienceDialog = ({ onAddExperience }: Props) => {
     if (!title || !company || !startYear) return;
 
     onAddExperience({
-      title,
+      role: title,
       company,
       startYear: Number(startYear),
       endYear: endYear ? Number(endYear) : undefined,
@@ -330,22 +389,22 @@ const AddExperienceDialog = ({ onAddExperience }: Props) => {
     </Dialog>
   );
 };
- function AddProjectDialog({
+function AddProjectDialog({
   onAddProject,
 }: {
   onAddProject: (project: Project) => void;
 }) {
   const [project, setProject] = useState<Project>({
-    projectName: "",
-    projectDescription: "",
+    name: "",
+    description: "",
   });
 
   const [open, setOpen] = useState(false);
 
   const handleAdd = () => {
-    if (!project.projectName || !project.projectDescription) return;
+    if (!project.name || !project.description) return;
     onAddProject(project);
-    setProject({ projectName: "", projectDescription: "" });
+    setProject({ name: "", description: "" });
     setOpen(false);
   };
 
@@ -361,13 +420,13 @@ const AddExperienceDialog = ({ onAddExperience }: Props) => {
         <div className="space-y-4">
           <Input
             placeholder="Project Name"
-            value={project.projectName}
-            onChange={(e) => setProject({ ...project, projectName: e.target.value })}
+            value={project.name}
+            onChange={(e) => setProject({ ...project, name: e.target.value })}
           />
           <Textarea
             placeholder="Project Description"
-            value={project.projectDescription}
-            onChange={(e) => setProject({ ...project, projectDescription: e.target.value })}
+            value={project.description}
+            onChange={(e) => setProject({ ...project, description: e.target.value })}
           />
           <Button onClick={handleAdd} className="w-full">
             Save Project

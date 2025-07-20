@@ -1,9 +1,19 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { Briefcase, Clock, Star, Zap, BarChart3, FileText, Video, User, TrendingUp } from "lucide-react"
+import { useSession } from "next-auth/react"
 import Link from "next/link"
+import { useEffect, useState } from "react"
 
 export default function HomePage() {
+  const {data:session,status}=useSession();
+  const [showdashboard, setshowdashboard] = useState(false);
+  useEffect(() => {
+    if (status === "authenticated" && session.user?.dashboardId && showdashboard==false) {
+      setshowdashboard(true);
+    }
+  }, [status])
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden relative">
       {/* Abstract background shapes */}
@@ -16,15 +26,17 @@ export default function HomePage() {
           <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
             <Briefcase className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">InterviewAI</h1>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">MockPrep AI</h1>
         </div>
 
         <div className="flex items-center space-x-3">
-          <Link href="/dashboard">
+          { showdashboard ? 
+            <Link href="/dashboard">
             <Button variant="ghost" className="text-gray-700 hover:text-blue-600 font-medium">
               Dashboard
             </Button>
-          </Link>
+          </Link>  : ""
+          }
           <Link href="/signin">
             <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-full shadow-lg transition-all duration-300">
               Register
@@ -75,7 +87,7 @@ export default function HomePage() {
           <div className="text-center mb-20">
             <h3 className="text-4xl font-bold text-gray-900 mb-6">Transform Your Interview Skills with AI</h3>
             <p className="text-xl text-gray-700 max-w-3xl mx-auto">
-              InterviewAI revolutionizes interview preparation by providing personalized, AI-powered mock interviews
+              MockPrep revolutionizes interview preparation by providing personalized, AI-powered mock interviews
               tailored to your specific job applications. Practice with confidence and land your dream job.
             </p>
           </div>
@@ -250,9 +262,9 @@ export default function HomePage() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="font-semibold text-2xl">InterviewAI</span>
+            <span className="font-semibold text-2xl">MockPrep</span>
           </div>
-          <p className="text-gray-400 text-sm">© 2025 InterviewAI. All rights reserved. Powered by AI SDK.</p>
+          <p className="text-gray-400 text-sm">© 2025 MockPrep. All rights reserved. Powered by AI SDK.</p>
         </div>
       </footer>
     </div>
