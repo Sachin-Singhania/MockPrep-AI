@@ -17,6 +17,7 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
     
         INSTRUCTION:-
         - If u feel user tagline is random, non-sensical, or meaningless tagline then tell user that its invalid 
+        - Requeried Skill will be for the job description you will make not user skills 
         OUTPUT FORMAT :- 
         {"output": "{jobTitle: string, jobDescription: string, skills: string[], experience: number}"}
         {"output": "Your tagline seems invalid i can't generate a job description for you."}
@@ -96,13 +97,12 @@ export async function ResumeExtracter(pdfInput: string): Promise<Resume | string
 
 }
 
-export async function InterviewTaking(interviewDetails: interviewDetails) {
+export async function InterviewTaking(interviewDetails: interviewDetails,timeLeft:string) {
     try {
-        //interviewDetails.InterviewChatHistory slice last 3 messages
         const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-3);
         let message= {
             InterviewChatHistory : lastThreeMessages,
-            JobDescription : interviewDetails.JobDescription,timeLeft: interviewDetails.timeLeft
+            JobDescription : interviewDetails.JobDescription,timeLeft
         }
         console.log(message);
     const systemInstruction = `You are an AI Interview Taker. You take job interviews of users based on job description , title , skills and experience.
@@ -112,7 +112,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
         1. IF timer is below 00:20 then you will give Closure like Thank you for your time. It was nice talking to you. not this exactly but something like that.
         2. If user Mishbehaves talks in bad language then give a formal response something like I am ending this interview as it is not going well and send response with type END
         3. Follow the output format rule especially with the type 
-
+        4. ONLY TALK IN ENGLISH even if user sends response in hindi or any language understand and translate in english and tell user to speak in english only
         INSTRUCTIONS:-
         0. There is 25 min timer so you will be provided what time is left , So don't waste asking too many casual question.
         1. When interviewing the user. If chats are empty then greet the user formally and tell him to introduce.
@@ -135,7 +135,8 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
             Interview Chat History: []
             timeLeft : 24:08
          You : {ContentType:"FORMALCHAT",content :"Good Evening , Mr Doe . Thank you for joining me today . Tell me a little about yourself and why you want to work with us? ."}
-        `;
+
+         `;
     const model = ai.getGenerativeModel({
        model: "gemini-2.5-pro",
             generationConfig: {

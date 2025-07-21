@@ -18,14 +18,13 @@ interface JobDescription {
     jobDescription: string;
     skills: string;
     experience: number;
-    difficulty : "EASY" | "MEDIUM" | "HARD";
+    difficulty : "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 }
 interface interviewDetails {
     id? : string;
     JobDescription: JobDescription,
     InterviewChatHistory: InterviewChat[]
     name: string,
-    timeLeft: string,
     startTime: Date,
 }
 interface Experience {

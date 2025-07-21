@@ -102,16 +102,17 @@ function DashboardContent() {
   const {setUser,setProfile,user,profile}=useChatStore();
   const nav= useRouter();
   useEffect(() => {
-    if (status === "loading") return;
-    if (status == "unauthenticated" || !session?.user?.userId || !session.user.dashboardId) {
-      if (user?.userId){
-          profile (user.userId);
-        return;
-      }
-     nav.push("/");
-     return;
-    };
-    if(session.user.userId && session.user.dashboardId){
+    
+  if (status === "loading") return;
+  if (status == "unauthenticated" || !session?.user?.userId || !session.user.dashboardId) {
+    if (user?.userId){
+      profile (user.userId);
+      return;
+    }
+    nav.push("/");
+    return;
+  };
+  if(session.user.userId && session.user.dashboardId){
       const userval= {
          userId :session.user.userId,
          dashboardId :session.user.dashboardId,
@@ -138,6 +139,7 @@ function DashboardContent() {
       setProfile(profile)
     }
   }, [status])
+
   return (
     <div className="p-8">
       <div className="mb-8">

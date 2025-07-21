@@ -51,7 +51,6 @@ export async function getProfile(userId:string) {
                 }
             }
         })
-        console.log(resp)
         return {
             message : "Profile Retrieved Successfully",
             data : resp
@@ -253,6 +252,7 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
 }
 export async function createInterview(dashboardId : string, interviewData: JobDescription) {
     try {
+        console.log(interviewData);
         const response = await prisma.interview.create({
            data:{
                dashboardId,

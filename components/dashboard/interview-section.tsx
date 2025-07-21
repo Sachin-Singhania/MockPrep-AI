@@ -20,6 +20,7 @@ import { Plus, Calendar, Clock, Star, Briefcase, Sparkles, Play } from "lucide-r
 import { useChatStore } from "@/store/store"
 import { fillsJob } from "@/lib/actions/rag"
 import { useRouter } from "next/navigation"
+import { createInterview } from "@/lib/actions/api"
 
 const pastInterviews = [
   {
@@ -53,14 +54,14 @@ const pastInterviews = [
 
 export function InterviewSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const {profile}=useChatStore();
+  const {profile,setInterview,user,interview}=useChatStore();
   const nav= useRouter();
   const [formData, setFormData] = useState<JobDescription>({
     jobTitle: "",
     jobDescription: "",
     skills: "",
     experience: 0,
-    difficulty: "EASY",
+    difficulty: "BEGINNER",
   })
 
   const handleInputChange = (field: keyof JobDescription, value: string) => {
@@ -94,15 +95,39 @@ export function InterviewSection() {
       userTagline : profile.tagline,
     }
     const response = await fillsJob(data)
-     if(typeof response ==="string"){
-      console.log(response);
-     }else{
-      setFormData(response);
+     if(typeof response ==="object"){
+       setFormData(response);
+       if(!user?.dashboardId) return;
+       const resp=await createInterview(user?.dashboardId ,formData);
+       if(!resp) return;
+       const data:interviewDetails={
+        InterviewChatHistory : [],
+        JobDescription :response,
+        name : user.name as string,
+        startTime : new Date(),
+        id : resp?.data.id
+       }
+       setInterview(data);
+      }else{
+       console.log(response);
      }
     return;
   }
 
-  const startInterview = () => {
+  const startInterview = async() => {
+    if(!interview){
+      if(!user?.dashboardId) return;
+      const resp=await createInterview(user?.dashboardId ,formData);
+      if(!resp) return;
+      const data:interviewDetails={
+        InterviewChatHistory : [],
+        JobDescription :formData,
+        name : user.name as string,
+        startTime : new Date(),
+        id : resp?.data.id
+      }
+      setInterview(data);
+    }
     nav.push (`/interview/session?title=${encodeURIComponent(formData.jobTitle)}`)
     return;
   }
@@ -144,19 +169,19 @@ export function InterviewSection() {
                   <Select value={formData.difficulty ?? "SELECT"} onValueChange={(value) => handleInputChange("difficulty", value)}>
                     <SelectTrigger>
                         <SelectValue placeholder="Select level">
-                        {formData.difficulty === "EASY"
-                          ? "Easy"
-                          : formData.difficulty === "MEDIUM"
-                          ? "Medium"
-                          : formData.difficulty === "HARD"
-                          ? "Hard"
+                        {formData.difficulty === "BEGINNER"
+                          ? "BEGINNER"
+                          : formData.difficulty === "INTERMEDIATE"
+                          ? "INTERMEDIATE"
+                          : formData.difficulty === "ADVANCED"
+                          ? "ADVANCED"
                           : ""}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="EASY">Easy</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="HARD">Hard</SelectItem>
+                      <SelectItem value="BEGINNER">BEGINNER</SelectItem>
+                      <SelectItem value="INTERMEDIATE">INTERMEDIATE</SelectItem>
+                      <SelectItem value="ADVANCED">ADVANCED</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

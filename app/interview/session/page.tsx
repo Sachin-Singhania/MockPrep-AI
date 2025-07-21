@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,41 +10,94 @@ import { Mic, MicOff, Video, VideoOff, Phone, Settings, Send, Bot, User, Clock }
 import { useChatStore } from "@/store/store"
 import { analytics, InterviewTaking } from "@/lib/actions/rag"
 import { addMessage } from "@/lib/actions/api"
+import { synthesizeSpeechStream, transcribeAudio } from "@/lib/actions/eleven_labs"
 
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
   const jobTitle = searchParams.get("title");
   const nav = useRouter();
   const [timeLeft, setTimeLeft] = useState(600)
-  const [isMuted, setIsMuted] = useState(false)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [message, setMessage] = useState("")
-  
-  const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
-
-  // Timer countdown
+  const [isRecording, setIsRecording] = useState(false)
+  const [isBlock, setisBlock] = useState(false)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
+  console.log()
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          // Handle interview end
-          return 0
+          return 0;
         }
         return prev - 1
       })
     }, 1000)
-
     return () => clearInterval(timer)
   }, [])
+  const toggleRecording = async () => {
+    if(isBlock) return;
+    if (isRecording) {
+      mediaRecorderRef.current?.stop()
+      setIsRecording(false)
+    } else {
+      try {
+     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        console.log("HELLO");
+        const formData = new FormData();
+        formData.append("file", audioBlob); 
+        formData.append("model_id", "scribe_v1"); 
+
+        const res = await transcribeAudio(formData);
+        setIsRecording(false);
+        setisBlock(true);
+        setMessage(res.text);
+        await sendMessage();
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  }
+
+  const router = useRouter();
+  const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
+  useEffect(() => {
+    if (!interview) {
+      router.replace("/dashboard");
+    } else {
+      const runFirstMessage = async () => {
+        try {
+          await firstMessage(); // your async call
+        } catch (err) {
+          console.error("Failed to run first message:", err);
+        }
+      };
+      runFirstMessage();
+    }
+  }, [interview]);
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
   const firstMessage= async() =>{
-     if (!message.trim()) return
     if(!interview?.id) return;
     const newMessage:InterviewChat = {
       Sender: "ASSISTANT",
@@ -63,7 +116,7 @@ export default function InterviewSessionPage() {
    }
   }
   const sendMessage =async () => {
-       if (!message.trim()) return
+       if (message.trim()=="") return
           if(!interview?.id) return;
        const lastType = interview.InterviewChatHistory.at(-1)?.ContentType;
         if (lastType === "END"){
@@ -77,7 +130,6 @@ export default function InterviewSessionPage() {
         } as const;
 
         const ContentType = nextTypeMap[lastType as keyof typeof nextTypeMap];
-
         const newMessage: InterviewChat = {
           Sender: "USER",
           Content: message,
@@ -89,18 +141,18 @@ export default function InterviewSessionPage() {
               ...newMessage,
               id: res.data.id,
             }
+            console.log(msg);
             addInterviewMessage(msg);
             setMessage("")
           }else{
             return;
           }
 
-
-   
-    const aiResponse = await InterviewTaking(interview);
+    const aiResponse = await InterviewTaking(interview,formatTime(timeLeft).toString());
     if(!aiResponse){
         return;
     }else{
+      PlayAudioButton(aiResponse.Content);
       const res= await addMessage(interview?.id,aiResponse);
       if(res.status==200 && res.data){
             const msg= {
@@ -108,12 +160,28 @@ export default function InterviewSessionPage() {
               id: res.data.id,
             }
             addInterviewMessage(msg);
-            setMessage("")
+           setisBlock(false);
           }else{
             return;
           }
     }
   }
+    function PlayAudioButton(message:string) {
+      const handleClick = async (message:string) => {
+          const buffer = await synthesizeSpeechStream(message);
+          const audioBytes = Uint8Array.from(atob(buffer), (c) => c.charCodeAt(0));
+          const blob = new Blob([audioBytes], { type: "audio/mpeg" });
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+        try {
+          await audio.play();
+        } catch (error) {
+          console.log(error)
+        }
+        
+      };
+      handleClick(message);
+    }
 
   const endInterview = async () => {
     if(!interview) return;
@@ -176,10 +244,10 @@ export default function InterviewSessionPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsMuted(!isMuted)}
-              className={`rounded-full w-12 h-12 ${isMuted ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"} text-white`}
+               onClick={toggleRecording}
+              className={`rounded-full w-12 h-12 ${!isRecording && isBlock ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"} text-white`}
             >
-              {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              {isRecording && !isBlock ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
             </Button>
 
             <Button
@@ -274,14 +342,6 @@ export default function InterviewSessionPage() {
               }}
             />
             <div className="flex flex-col space-y-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className={`${isMuted ? "bg-red-50 border-red-200" : ""}`}
-                onClick={() => setIsMuted(!isMuted)}
-              >
-                {isMuted ? <MicOff className="w-4 h-4 text-red-500" /> : <Mic className="w-4 h-4" />}
-              </Button>
               <Button
                 onClick={sendMessage}
                 disabled={!message.trim()}
