@@ -4,6 +4,7 @@ import { prisma } from "../prisma";
 import bcrypt from "bcryptjs";
 export async function getProfile(userId:string) {
     try {
+        console.log(userId)
         const resp=await prisma.dashboard.findFirst({
             where:{
                 userId 
@@ -50,6 +51,7 @@ export async function getProfile(userId:string) {
                 }
             }
         })
+        console.log(resp)
         return {
             message : "Profile Retrieved Successfully",
             data : resp
@@ -63,11 +65,11 @@ export async function getProfile(userId:string) {
 }
 
 
-async function getInterviewDetails(interviewId:string) {
+export async function getInterviewDetails(interviewId:string)  {
     if (!interviewId) {
         return {
             message: " Analytics ID is required",
-            status: 400
+            status: 400,
         }
     }
     const interview = await prisma.analytics.findUnique({ where: { interviewId },
@@ -82,10 +84,16 @@ async function getInterviewDetails(interviewId:string) {
         VocabularyScore : true,
         TechnicalKeywords : true,
         TechnicalScore : true,
-        RelevanceScore : true,questions : true,Interview:{
+        RelevanceScore : true,questions : {
+            select:{
+                id : true,
+                question : true,
+                score : true,
+            }
+        },Interview:{
             select:{
                 startTime : true,
-                endTime : true,
+                endTime : true,Jobtitle :true
             }
         }
     }
@@ -96,6 +104,94 @@ async function getInterviewDetails(interviewId:string) {
          data: interview
     };
     
+}
+export async function addMessage(interviewId : string, content:InterviewChat ) {
+    try {
+        if (!interviewId) {
+            return {
+                message: "Analytics ID is required",
+                status: 400,
+                data : null
+                }
+            }
+            const data={
+                   content : content.Content ,
+                    Sender : content.Sender,
+                    type : content.ContentType,
+                    interviewId : interviewId ,
+            }
+                   const {message:response}=await prisma.$transaction(async (tx) => {
+                           const message= await tx.message.create({
+                                data,omit:{
+                                    createdAt : true ,
+                                    updatedAt : true ,
+                                    interviewId : true ,
+                                }
+                            });
+                    if (content.ContentType === "QUESTION") {
+                               await tx.analytics.upsert({
+                                where: { interviewId },
+                                create: {
+                                    interviewId,
+                                    overallScore: 0,
+                                    CommunicationScore: 0,
+                                    TechnicalScore: 0,
+                                    ProblemSolvingScore: 0,InterviewSummary : "",
+                                    RelevanceScore : 0,
+                                    VocabularyScore : 0 ,
+                                    questions: {
+                                    create: {
+                                        question: content.Content ,
+                                        score: 0,
+                                    },
+                                    },
+                                },
+                                update: {
+                                    questions: {
+                                    create: {
+                                        question: content.Content,
+                                        score: 0,
+                                    },
+                                    },
+                                },
+                                });
+                            }
+
+                            if (content.ContentType === "VALIDATION") {
+                              await tx.analytics.update({
+                                where: { interviewId },
+                                data: {
+                                    questions: {
+                                    update: {
+                                        where: { id: content.questionId },
+                                        data: { score: content.score },
+                                    },
+                                    },
+                                },
+                                });
+                            }
+                            return {
+                                message
+                            }
+                            });
+
+            return{
+                message: "Message added successfully",
+                status: 200,
+                data: {
+                    id : response.id ,
+                    Content : response.content as InterviewChat["ContentType"],
+                    Sender : response.Sender  ,
+                    ContentType : response.type,
+                }
+            }
+    } catch (error) {
+         return {
+            message: "Error adding message",
+            status: 500,
+            data : null
+         }
+    }
 }
 export async function setInterviewDetails(interviewData:InterviewData,interviewDetails:interviewDetails,endTime:Date) {
     
@@ -115,7 +211,7 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
                 }
             },
             Analytics:{
-                create:{
+                update:{
               CommunicationScore : interviewData.InterviewScores.communication,
         ProblemSolvingScore : interviewData.InterviewScores.problemSolving,
         HRInsight : {

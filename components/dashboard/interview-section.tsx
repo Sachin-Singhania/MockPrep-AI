@@ -90,7 +90,7 @@ export function InterviewSection() {
     if(max<=currentYear) max =currentYear;
     const data:UserDetails={
       userExperience : max-min==0 ? 0 : max-min  ,
-      userSkills : profile.Skills,
+      userSkills : Array.from(profile.Skills),
       userTagline : profile.tagline,
     }
     const response = await fillsJob(data)

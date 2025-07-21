@@ -8,22 +8,19 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Briefcase, Code, Plus, X, Upload, FileText, Sparkles } from "lucide-react"
+import { Briefcase, Plus, X, Upload, FileText, Sparkles } from "lucide-react"
 import { ResumeExtracter } from "@/lib/actions/rag"
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@radix-ui/react-dialog"
-import { DialogFooter, DialogHeader } from "../ui/dialog"
+import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog"
+import { DialogFooter } from "../ui/dialog"
 import { useChatStore } from "@/store/store"
-import { Profile } from "@/store/store"
 
 
 export function ProfileSection() {
   const imageInputref = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
- 
-  const [avatar, setAvatar] = useState<string | null>(null)
   const [_resume, setResume] = useState<File | null>(null)
-  const { profile, user ,setProfile} = useChatStore();
-
+  const { profile, user,updateSkills,updateProfilePic,updateProjects,updateWorkExp} = useChatStore();
+  
   const handleButtonClickImage = () => {
     imageInputref.current?.click()
   }
@@ -47,14 +44,10 @@ export function ProfileSection() {
           if (typeof hey === 'string') {
             alert(hey)
           } else {
-            if(profile){
-              setProfile({
-                ...profile,
-                Projects: hey.Projects,
-                Skills: hey.Skills,
-                WorkExperience: hey.WorkExperience,
-              });
-            }
+            const skill= new Set(hey.Skills);
+            updateSkills(skill);
+            updateProjects(hey.Projects);
+            updateWorkExp(hey.WorkExperience);
           }
         }
       }
@@ -68,7 +61,7 @@ export function ProfileSection() {
     const file = e.target.files?.[0]
     if (file) {
       const hey = URL.createObjectURL(file);
-      setAvatar(hey);
+      updateProfilePic(hey);
     }
   }
 
@@ -90,7 +83,7 @@ export function ProfileSection() {
             </CardHeader>
             <CardContent className="text-center">
               <Avatar className="w-32 h-32 mx-auto mb-4">
-                <AvatarImage src={avatar ? avatar : "/placeholder.svg?height=128&width=128"} />
+                <AvatarImage src={user?.profilePic ? user?.profilePic : "/placeholder.svg?height=128&width=128"} />
                 <AvatarFallback className="bg-blue-600 text-white text-2xl">JD</AvatarFallback>
               </Avatar>
               <Input
@@ -137,17 +130,17 @@ export function ProfileSection() {
           </Card>
         </div>
         <div className="lg:col-span-2 space-y-6">
-          <ProfileCard/>
-           <SkillCard /> 
-          <Exp/>  
-          <ProjectCard/>    
+          <ProfileCard about={profile?.about} email={user?.email} name={user?.name} tagline={profile?.tagline} />
+           <SkillCard skills={profile?.Skills} /> 
+          <Exp experiences={profile?.WorkExperience }/>  
+          <ProjectCard projects={ profile?.Projects}/>    
         </div>
       </div>
     </div>
   )
 }
-const Exp= ()=>{
-  const [experiences, setExperiences] = useState<Experience[]>([])
+const Exp= ({experiences}:{experiences:Experience[]| undefined })=>{
+  const   setExperiences = (experiences:Experience[]) => {}
   return (
     <>
           <Card>
@@ -163,8 +156,8 @@ const Exp= ()=>{
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {experiences?.map((val) => (
-                  <div key={val.id} className="flex items-center justify-between p-4 border rounded-lg">
+                {experiences?.map((val,index) => (
+                  <div key={val.id ? val.id : index+1} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                         <Briefcase className="w-5 h-5 text-blue-600" />
@@ -186,17 +179,16 @@ const Exp= ()=>{
                 ))}
               </div>
 
-              <AddExperienceDialog onAddExperience={(exp) => setExperiences([...experiences, exp])} />
+              <AddExperienceDialog onAddExperience={(exp) => setExperiences([...experiences ??[] ,exp])} />
             </CardContent>
           </Card>
     </>
   )
 }
-const ProfileCard = () => {
-    const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [tagline, setTagline] = useState("")
-  const [about, setAbout] = useState("")
+const ProfileCard = ({name, email,tagline,about} :{ name:string| undefined| null ,email:string| undefined ,tagline:string| undefined ,about:string| undefined })=> {
+     const setName = (name: string) => {}
+     const setAbout = (about: string) => {}
+     const setTagline = (tagline: string) => {}
   return(
     <>
     <Card>
@@ -214,7 +206,7 @@ const ProfileCard = () => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Name</Label>
-                  <Input id="name" value={name} onChange={(e) =>{
+                  <Input id="name" value={name as string | undefined} onChange={(e) =>{
                           setName(e.target.value)
 
                   } } placeholder="John Doe" />
@@ -248,18 +240,14 @@ const ProfileCard = () => {
     </>
   )
 }
-const SkillCard = () => {
-  const [skills, setSkills] = useState<string[]>([])
+const SkillCard = ({skills} : {skills:Set<string>| undefined }) => {
+ 
   const [newSkill, setNewSkill] = useState("")
     const addSkill = () => {
-    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
-      setSkills([...skills, newSkill.trim()])
-      setNewSkill("")
-    }
+    
   }
 
   const removeSkill = (skillToRemove: string) => {
-    setSkills(skills.filter((skill) => skill !== skillToRemove))
   }
   return(
     <>
@@ -276,14 +264,17 @@ const SkillCard = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-4">
-                {skills?.map((skill) => (
-                  <Badge key={skill} variant="secondary" className="px-3 py-1">
-                    {skill}
-                    <button onClick={() => removeSkill(skill)} className="ml-2 text-gray-500 hover:text-red-500">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
+             {skills && Array.from(skills).map((skill) => (
+        <Badge key={skill} variant="secondary" className="px-3 py-1">
+          {skill}
+          <button
+            onClick={() => removeSkill(skill)}
+            className="ml-2 text-gray-500 hover:text-red-500"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </Badge>
+      ))}
               </div>
               <div className="flex gap-2">
                 <Input
@@ -301,8 +292,9 @@ const SkillCard = () => {
     </>
   )
 }
-const ProjectCard = () => {
-    const [projects, setProjects] = useState<Project[]>([])
+const ProjectCard = ({projects}: {projects:Project[] | undefined}) => {
+  const setProjects = (projects: Project[]) => {
+  }
   return (
     <>
       <Card>
@@ -318,14 +310,14 @@ const ProjectCard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {projects?.map((project) => (
-                  <div key={project.id} className="p-4 border rounded-lg">
+                {projects?.map((project , index) => (
+                  <div key={project.id ? project.id : index+1} className="p-4 border rounded-lg">
                     <h4 className="font-medium mb-2">{project.name}</h4>
                     <p className="text-sm text-gray-600">{project.description}</p>
                   </div>
                 ))}
               </div>
-              <AddProjectDialog onAddProject={(proj) => setProjects([...projects, proj])} />
+              <AddProjectDialog onAddProject={(proj) => setProjects([...projects ??[], proj])} />
             </CardContent>
           </Card>
     </>

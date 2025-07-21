@@ -132,13 +132,12 @@ function DashboardContent() {
         tagline : data.Profile?.tagline ? data.Profile?.tagline : undefined,
         interview : data.Interview ?? [],
         Projects : data.Profile?.Projects ?? [],
-        Skills : data.Profile?.Skills ?? [],
+        Skills : new Set(data.Profile?.Skills) ?? [],
         WorkExperience : data.Profile?.WorkExperience ?? [],
       }
       setProfile(profile)
     }
   }, [status])
-  
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -153,7 +152,7 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Interviews Completed</p>
-                <p className="text-2xl font-bold text-gray-900">{profile?.interview?.length==0 ? 0 : profile?.interview?.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{ profile?.interview && profile?.interview?.length> 0 ?  profile?.interview?.length : 0}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-blue-600" />
@@ -305,7 +304,7 @@ function DashboardContent() {
     <div>
       <h4 className="font-semibold text-gray-900 mb-3">Top Skills</h4>
       <div className="flex flex-wrap gap-2">
-        {profile?.Skills.map((skill) => (
+        {profile?.Skills && Array.from(profile.Skills).map((skill) => (
           <Badge
             key={skill}
             variant="secondary"

@@ -1,29 +1,26 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Textarea } from "@/components/ui/textarea"
 import { Mic, MicOff, Video, VideoOff, Phone, Settings, Send, Bot, User, Clock } from "lucide-react"
+import { useChatStore } from "@/store/store"
+import { analytics, InterviewTaking } from "@/lib/actions/rag"
+import { addMessage } from "@/lib/actions/api"
 
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
-  const jobTitle = searchParams.get("title") || "Software Developer"
-
-  const [timeLeft, setTimeLeft] = useState(600) // 10 minutes in seconds
+  const jobTitle = searchParams.get("title");
+  const nav = useRouter();
+  const [timeLeft, setTimeLeft] = useState(600)
   const [isMuted, setIsMuted] = useState(false)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [message, setMessage] = useState("")
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "ai",
-      content: `Hi there! Welcome to your ${jobTitle} interview. I'm excited to learn more about you and your experience. What motivated you to apply for this role?`,
-      timestamp: new Date(),
-    },
-  ])
+  
+  const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
 
   // Timer countdown
   useEffect(() => {
@@ -46,36 +43,89 @@ export default function InterviewSessionPage() {
     const secs = seconds % 60
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
-
-  const sendMessage = () => {
-    if (!message.trim()) return
-
-    const newMessage = {
-      id: messages.length + 1,
-      sender: "user",
-      content: message,
-      timestamp: new Date(),
+  const firstMessage= async() =>{
+     if (!message.trim()) return
+    if(!interview?.id) return;
+    const newMessage:InterviewChat = {
+      Sender: "ASSISTANT",
+      Content:  `Hi there! Welcome to your ${jobTitle} interview. I'm excited to learn more about you and your experience. What motivated you to apply for this role?`,
+      ContentType :"FORMALCHAT",
     }
-
-    setMessages([...messages, newMessage])
-    setMessage("")
-
-    // Simulate AI response after a delay
-    setTimeout(() => {
-      const aiResponse = {
-        id: messages.length + 2,
-        sender: "ai",
-        content:
-          "That's a great answer! Can you tell me about a challenging project you've worked on recently and how you overcame the obstacles?",
-        timestamp: new Date(),
+    const res= await addMessage(interview?.id,newMessage);
+    if(res.status==200 && res.data){
+      const msg= {
+        ...newMessage,
+        id: res.data.id,
       }
-      setMessages((prev) => [...prev, aiResponse])
-    }, 2000)
+     addInterviewMessage(msg);
+   }else{
+    return;
+   }
+  }
+  const sendMessage =async () => {
+       if (!message.trim()) return
+          if(!interview?.id) return;
+       const lastType = interview.InterviewChatHistory.at(-1)?.ContentType;
+        if (lastType === "END"){
+          endInterview();
+          return;
+        }
+        const nextTypeMap = {
+          FORMALCHAT: "FORMALCHAT",
+          QUESTION: "ANSWER",
+          VALIDATION: "FORMALCHAT",
+        } as const;
+
+        const ContentType = nextTypeMap[lastType as keyof typeof nextTypeMap];
+
+        const newMessage: InterviewChat = {
+          Sender: "USER",
+          Content: message,
+          ContentType: ContentType ,
+        };
+          const res= await addMessage(interview?.id,newMessage);
+          if(res.status==200 && res.data){
+            const msg= {
+              ...newMessage,
+              id: res.data.id,
+            }
+            addInterviewMessage(msg);
+            setMessage("")
+          }else{
+            return;
+          }
+
+
+   
+    const aiResponse = await InterviewTaking(interview);
+    if(!aiResponse){
+        return;
+    }else{
+      const res= await addMessage(interview?.id,aiResponse);
+      if(res.status==200 && res.data){
+            const msg= {
+              ...aiResponse,
+              id: res.data.id,
+            }
+            addInterviewMessage(msg);
+            setMessage("")
+          }else{
+            return;
+          }
+    }
   }
 
-  const endInterview = () => {
-    // Handle interview end
-    window.location.href = `/interview/${jobTitle}`
+  const endInterview = async () => {
+    if(!interview) return;
+    try {
+     const data= await analytics(interview);
+     if (!data) return;
+      addOrUpdateAnalytics(interview.id as string,data);
+      nav.push(`/interview/${interview.id}`);
+    } catch (error) {
+      console.log (error);
+      nav.push(`/dashboard`);
+    }
   }
 
   return (
@@ -178,14 +228,14 @@ export default function InterviewSessionPage() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] ${msg.sender === "user" ? "order-2" : "order-1"}`}>
+          {interview?.InterviewChatHistory?.map((msg) => (
+            <div key={msg.id} className={`flex ${msg.Sender === "USER" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[80%] ${msg.Sender === "USER" ? "order-2" : "order-1"}`}>
                 <div
-                  className={`flex items-start space-x-2 ${msg.sender === "user" ? "flex-row-reverse space-x-reverse" : ""}`}
+                  className={`flex items-start space-x-2 ${msg.Sender === "USER" ? "flex-row-reverse space-x-reverse" : ""}`}
                 >
                   <Avatar className="w-8 h-8">
-                    {msg.sender === "ai" ? (
+                    {msg.Sender === "ASSISTANT" ? (
                       <AvatarFallback className="bg-blue-600 text-white">
                         <Bot className="w-4 h-4" />
                       </AvatarFallback>
@@ -197,10 +247,10 @@ export default function InterviewSessionPage() {
                   </Avatar>
                   <div
                     className={`rounded-lg px-3 py-2 ${
-                      msg.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
+                      msg.Sender === "USER" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
                     }`}
                   >
-                    <p className="text-sm">{msg.content}</p>
+                    <p className="text-sm">{msg.Content}</p>
                   </div>
                 </div>
               </div>
@@ -216,7 +266,7 @@ export default function InterviewSessionPage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="flex-1 min-h-[60px] resize-none"
-              onKeyPress={(e) => {
+              onKeyUp={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault()
                   sendMessage()

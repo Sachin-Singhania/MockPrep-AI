@@ -118,7 +118,7 @@ model Analytics {
 model Question{
   id        String   @id @default(uuid())
   question String 
-  score Int
+  score Int?
   AnalyticsId String 
   Analytics Analytics @relation(fields: [AnalyticsId], references: [id])
 }

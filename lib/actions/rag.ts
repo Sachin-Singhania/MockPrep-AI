@@ -100,10 +100,11 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
     try {
         //interviewDetails.InterviewChatHistory slice last 3 messages
         const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-3);
-        let message:interviewDetails= {
-            ...interviewDetails,InterviewChatHistory :lastThreeMessages
+        let message= {
+            InterviewChatHistory : lastThreeMessages,
+            JobDescription : interviewDetails.JobDescription,timeLeft: interviewDetails.timeLeft
         }
-    
+        console.log(message);
     const systemInstruction = `You are an AI Interview Taker. You take job interviews of users based on job description , title , skills and experience.
         You will also be provided with chats history of the interview if provided , if not then you will start from scratch.
         
@@ -115,9 +116,11 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
         INSTRUCTIONS:-
         0. There is 25 min timer so you will be provided what time is left , So don't waste asking too many casual question.
         1. When interviewing the user. If chats are empty then greet the user formally and tell him to introduce.
-        2. There are three types of output FORMALCHAT means like asking hobbies , interest , past company experience , work etc.
-            - QUESTION :- this type means you will ask user questions based on job description and skills only.
+        2. There are three types of output FORMALCHAT means like greeting, asking hobbies , interest , past company experience , projects , user asking about company goal etc.
+            - QUESTION :- this type means you will ask user questions based on job description and skills only
             - VALIDATION :- this type means you will validate user answers if user provide an answer to your response type QUESTION
+            - END :- If User uses bad language or time is below 20 seconds then send this type of ContentType
+        3 . Once You ask a QUESTION user will send a ANSWER then you will send a VALIDATION (QUESTION(by you)-> ANSWER(by user) ->VALIDATION(by you with score))
 
         Output Format :- 
             {ContentType:"FORMALCHAT | QUESTION | VALIDATION | END"  , content : string , score?: number}
@@ -152,6 +155,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
     const output = response.text().trim();
     console.log(output);
     const parse = JSON.parse(output);
+    console.log(parse);
     let data:InterviewChat ={
         ...parse,
         Sender :"ASSISTANT"
@@ -163,7 +167,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails) {
 }
 
 
-export async function analytics(interviewDetails: interviewDetails, job: JobDescription) {
+export async function analytics(interviewDetails: interviewDetails) {
     try {
         let start= interviewDetails.startTime;
         let end= new Date();
@@ -195,8 +199,9 @@ export async function analytics(interviewDetails: interviewDetails, job: JobDesc
     const overallScore = InterviewScores.reduce((a, b) => a + b, 0) / InterviewScores.length;
 
     const interviewData: InterviewData = {
+        date : interviewDetails.startTime,
         candidateName: interviewDetails.name,
-        position: job.jobTitle,
+        position: interviewDetails.JobDescription.jobTitle,
         duration: duration+ " seconds",
         overallScore,
         questionPerformance,

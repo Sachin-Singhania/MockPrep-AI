@@ -9,7 +9,7 @@ type Project = {
     description: string;
 }
 interface Resume {
-    Skills: string[];
+    Skills: Set<string>;
     WorkExperience: Experience[],
     Projects: Project[]
 }
@@ -37,17 +37,21 @@ interface Experience {
 }
 type InterviewChat =
     | {
+        id?: string
+        questionId : string
         Sender: "USER" | "ASSISTANT";
         Content: string;
         ContentType: "VALIDATION";
         score: number;
     }
     | {
+        id?: string
         Sender: "USER" | "ASSISTANT";
         Content: string;
         ContentType: "ANSWER" | "FORMALCHAT" | "QUESTION" | "END";
     };
     interface InterviewData extends InterviewInsights {
+      date : Date
     candidateName: string;
     position: string;
     duration: string;
@@ -55,6 +59,7 @@ type InterviewChat =
     questionPerformance: questionPerformance[]
 }
 type questionPerformance = {
+      id?:string
     question: string;
     score: number;
     topic: string;

@@ -41,92 +41,114 @@ import {
   Zap,
 } from "lucide-react"
 import Link from "next/link"
+import { useChatStore } from "@/store/store"
+import { getInterviewDetails } from "@/lib/actions/api"
+import { getStatus } from "@/lib/utils"
 
 // Mock data - in real app, this would come from API
-const mockInterviewData = {
-  id: "123",
-  candidateName: "John Doe",
-  position: "Senior Frontend Developer",
-  date: "2024-01-15",
-  duration: "20 minutes",
-  overallScore: 78,
-  scores: {
-    communication: 85,
-    technicalKnowledge: 72,
-    problemSolving: 80,
-    vocabulary: 75,
-    relevance: 82,
-  },
-  questionPerformance: [
-    { question: "Q1", score: 85, topic: "React Fundamentals", status: "excellent" },
-    { question: "Q2", score: 70, topic: "State Management", status: "good" },
-    { question: "Q3", score: 78, topic: "Performance Optimization", status: "good" },
-    { question: "Q4", score: 82, topic: "Testing Strategies", status: "excellent" },
-  ],
-  technicalKeywords: [
-    "React",
-    "JavaScript",
-    "TypeScript",
-    "Redux",
-    "Hooks",
-    "Components",
-    "State Management",
-    "API Integration",
-  ],
-  strengths: [
-    "Strong understanding of React fundamentals",
-    "Good communication skills and clear explanations",
-    "Demonstrates practical experience with modern tools",
-    "Shows enthusiasm for learning new technologies",
-  ],
-  areasForImprovement: [
-    "Deepen knowledge of advanced state management patterns",
-    "Improve understanding of performance optimization techniques",
-    "Practice explaining complex technical concepts more concisely",
-    "Strengthen testing methodology knowledge",
-  ],
-  hrInsights: {
-    technicalCompetency: "Mid-level. Shows solid foundation but needs growth in advanced concepts.",
-    experienceLevel: "Approximately 3-4 years of relevant experience.",
-    culturalFit: "Good fit. Demonstrates collaborative mindset and growth orientation.",
-    learningPotential: "High. Shows curiosity and willingness to learn new technologies.",
-    interviewReadiness: 75,
-  },
-  aiNotes:
-    "The candidate demonstrated a solid understanding of React fundamentals and showed good problem-solving approach. Communication was clear and professional throughout the interview. Some hesitation was noted when discussing advanced state management patterns, indicating an area for potential growth. Overall performance suggests readiness for a mid-level position with mentorship opportunities for advancement.",
-}
 
-const radarData = [
-  { subject: "Communication", score: mockInterviewData.scores.communication, fullMark: 100 },
-  { subject: "Technical", score: mockInterviewData.scores.technicalKnowledge, fullMark: 100 },
-  { subject: "Problem Solving", score: mockInterviewData.scores.problemSolving, fullMark: 100 },
-  { subject: "Vocabulary", score: mockInterviewData.scores.vocabulary, fullMark: 100 },
-  { subject: "Relevance", score: mockInterviewData.scores.relevance, fullMark: 100 },
-]
-
+type RadarDataItem = {
+  subject: string;
+  score: number;
+  fullMark: number;
+};
 const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"]
 
 export default function InterviewAnalytics() {
-  const params = useParams()
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true);
+const { interviewId } = useParams() as { interviewId: string };
+const { allAnalytics, user, addOrUpdateAnalytics } = useChatStore();
+const [mockInterviewData, setMockInterviewData] = useState<InterviewData | null>(null);
+const [radarData, setradarData] = useState<RadarDataItem[] | null>([]);
+useEffect(() => {
+  if (!interviewId || !user) return;
 
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 1000)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-emerald-600 dark:text-emerald-400"
-    if (score >= 60) return "text-amber-600 dark:text-amber-400"
-    return "text-red-600 dark:text-red-400"
+  const existingData = allAnalytics[interviewId];
+  if (existingData) {
+     let rdata:RadarDataItem[]= [
+            { subject: "Communication", score: existingData.InterviewScores.communication, fullMark: 100 },
+            { subject: "Technical", score: existingData.InterviewScores.technicalKnowledge, fullMark: 100 },
+            { subject: "Problem Solving", score: existingData.InterviewScores.problemSolving, fullMark: 100 },
+            { subject: "Vocabulary", score: existingData.InterviewScores.vocabulary, fullMark: 100 },
+            { subject: "Relevance", score: existingData.InterviewScores.relevance, fullMark: 100 },
+        ]
+        setradarData(prev=>
+         [ ...prev ?? [],
+          ...rdata,]
+        );
+    setMockInterviewData(existingData);
+    setIsLoading(false);
+    return;
   }
 
-  const getScoreBg = (score: number) => {
-    if (score >= 80) return "bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800"
-    if (score >= 60) return "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800"
-    return "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
-  }
+  const fetchData = async () => {
+    try {
+      const res = await getInterviewDetails(interviewId);
+      if (res.status === 200 ) {
+        if(!res.data) return;
+        const data: InterviewData = {
+          aiNotes: res.data?.InterviewSummary,
+          areasForImprovement: res.data?.GrowthAreas,
+          candidateName: user.name as string,
+          date: new Date(res.data.Interview.startTime),
+          duration: res.data.Interview.endTime
+            ? (
+                (new Date(res.data.Interview.endTime).getTime() -
+                  new Date(res.data.Interview.startTime).getTime()) /
+                60000
+              ).toFixed(0)
+            : "N/A Interview Analytics Failed ",
+          hrInsights: {
+            culturalFit: res.data?.HRInsight?.CulturalFit as string,
+            experienceLevel: res.data?.HRInsight?.ExperienceLevel as string,
+            interviewReadiness: res.data?.HRInsight?.InterviewReadlineScore as number,
+            learningPotential: res.data?.HRInsight?.LearningPotential as string,
+            technicalCompetency: res.data?.HRInsight?.TechnicalCompetency as string,
+          },
+          InterviewScores: {
+            communication: res.data?.CommunicationScore,
+            problemSolving: res.data?.ProblemSolvingScore,
+            relevance: res.data?.RelevanceScore,
+            technicalKnowledge: res.data?.TechnicalScore,
+            vocabulary: res.data?.VocabularyScore,
+          },
+          overallScore: res.data?.overallScore,
+          position: res.data?.Interview.Jobtitle,
+          questionPerformance: res.data?.questions.map((val: any, index: number) => ({
+            question: `Q${index + 1}`,
+            score: val.score,
+            topic: val.question,
+            status: getStatus(val.score).status,
+          })),
+          strengths: res.data?.KeyStrengths,
+          technicalKeywords: res.data?.TechnicalKeywords,
+        };
+        let rdata:RadarDataItem[]= [
+            { subject: "Communication", score: data.InterviewScores.communication, fullMark: 100 },
+            { subject: "Technical", score: data.InterviewScores.technicalKnowledge, fullMark: 100 },
+            { subject: "Problem Solving", score: data.InterviewScores.problemSolving, fullMark: 100 },
+            { subject: "Vocabulary", score: data.InterviewScores.vocabulary, fullMark: 100 },
+            { subject: "Relevance", score: data.InterviewScores.relevance, fullMark: 100 },
+        ]
+        setradarData(prev=>
+         [ ...prev ?? [],
+          ...rdata,]
+        );
+
+        addOrUpdateAnalytics(interviewId, data);
+        setMockInterviewData(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch interview data:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchData();
+}, [interviewId, allAnalytics, user]);
+
+ 
 
   const getScoreBadgeVariant = (score: number) => {
     if (score >= 80) return "default"
@@ -185,16 +207,16 @@ export default function InterviewAnalytics() {
               <Award className="h-5 w-5" />
               <span className="text-sm font-medium">Interview Complete</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">{mockInterviewData.candidateName}</h1>
-            <p className="text-xl text-indigo-100 mb-2">{mockInterviewData.position}</p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">{mockInterviewData?.candidateName}</h1>
+            <p className="text-xl text-indigo-100 mb-2">{mockInterviewData?.position}</p>
             <div className="flex items-center justify-center gap-6 text-indigo-200">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                <span>{mockInterviewData.duration}</span>
+                <span>{mockInterviewData?.duration}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                <span>{mockInterviewData.date}</span>
+                <span>{mockInterviewData?.date.toLocaleDateString()}</span>
               </div>
             </div>
           </div>
@@ -207,15 +229,17 @@ export default function InterviewAnalytics() {
           <CardContent className="p-8">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white mb-6 shadow-lg">
-                <span className="text-4xl font-bold">{mockInterviewData.overallScore}%</span>
+                <span className="text-4xl font-bold">{mockInterviewData?.overallScore}%</span>
               </div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Overall Performance</h2>
-              <Badge variant={getScoreBadgeVariant(mockInterviewData.overallScore)} className="text-lg px-4 py-2">
-                {mockInterviewData.overallScore >= 80
-                  ? "Excellent Performance"
-                  : mockInterviewData.overallScore >= 60
-                    ? "Good Performance"
-                    : "Needs Improvement"}
+              <Badge variant={getScoreBadgeVariant(mockInterviewData?.overallScore!==undefined ? mockInterviewData.overallScore : 0)} className="text-lg px-4 py-2">
+               {mockInterviewData?.overallScore !== undefined
+                        ? mockInterviewData.overallScore >= 80
+                          ? "Excellent Performance"
+                          : mockInterviewData.overallScore >= 60
+                            ? "Good Performance"
+                            : "Needs Improvement"
+                        : "No Data"}
               </Badge>
             </div>
           </CardContent>
@@ -227,7 +251,7 @@ export default function InterviewAnalytics() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <MessageSquare className="h-8 w-8 opacity-80" />
-                <span className="text-3xl font-bold">{mockInterviewData.scores.communication}%</span>
+                <span className="text-3xl font-bold">{mockInterviewData?.InterviewScores.communication}%</span>
               </div>
               <h3 className="font-semibold text-lg">Communication</h3>
               <p className="text-emerald-100 text-sm">Clear and effective</p>
@@ -238,7 +262,7 @@ export default function InterviewAnalytics() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Code className="h-8 w-8 opacity-80" />
-                <span className="text-3xl font-bold">{mockInterviewData.scores.technicalKnowledge}%</span>
+                <span className="text-3xl font-bold">{mockInterviewData?.InterviewScores.technicalKnowledge}%</span>
               </div>
               <h3 className="font-semibold text-lg">Technical Knowledge</h3>
               <p className="text-blue-100 text-sm">Solid foundation</p>
@@ -249,7 +273,7 @@ export default function InterviewAnalytics() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Brain className="h-8 w-8 opacity-80" />
-                <span className="text-3xl font-bold">{mockInterviewData.scores.problemSolving}%</span>
+                <span className="text-3xl font-bold">{mockInterviewData?.InterviewScores.problemSolving}%</span>
               </div>
               <h3 className="font-semibold text-lg">Problem Solving</h3>
               <p className="text-purple-100 text-sm">Analytical approach</p>
@@ -260,7 +284,7 @@ export default function InterviewAnalytics() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <Zap className="h-8 w-8 opacity-80" />
-                <span className="text-3xl font-bold">{mockInterviewData.scores.relevance}%</span>
+                <span className="text-3xl font-bold">{mockInterviewData?.InterviewScores.relevance}%</span>
               </div>
               <h3 className="font-semibold text-lg">Relevance</h3>
               <p className="text-orange-100 text-sm">On-topic responses</p>
@@ -284,7 +308,7 @@ export default function InterviewAnalytics() {
             <CardContent>
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData}>
+                  <RadarChart data={radarData!=null ? radarData :[] }>
                     <PolarGrid stroke="#e2e8f0" />
                     <PolarAngleAxis dataKey="subject" className="text-sm" />
                     <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} />
@@ -311,7 +335,7 @@ export default function InterviewAnalytics() {
           </Card>
 
           {/* Question Performance Bar Chart */}
-          <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-0 shadow-xl">
+          {/* <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
@@ -325,14 +349,14 @@ export default function InterviewAnalytics() {
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={mockInterviewData.questionPerformance}
+                    data={mockInterviewData?.questionPerformance}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="question" />
                     <YAxis domain={[0, 100]} />
                     <Bar activeBar={false} dataKey="score" radius={[8, 8, 0, 0]}>
-                      {mockInterviewData.questionPerformance.map((entry, index) => (
+                      {mockInterviewData?.questionPerformance.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Bar>
@@ -348,7 +372,7 @@ export default function InterviewAnalytics() {
                 </ResponsiveContainer>
               </div>
               <div className="mt-6 space-y-3">
-                {mockInterviewData.questionPerformance.map((q, index) => (
+                {mockInterviewData?.questionPerformance.map((q, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
@@ -373,6 +397,65 @@ export default function InterviewAnalytics() {
                 ))}
               </div>
             </CardContent>
+          </Card> */}
+              <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-0 shadow-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
+                  <MessageSquare className="h-5 w-5 text-white" />
+                </div>
+                Question Performance
+              </CardTitle>
+              <CardDescription className="text-base">Individual question breakdown</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[320px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={mockInterviewData?.questionPerformance}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis dataKey="question" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "transparent" }} />
+                    <Bar dataKey="score" radius={[8, 8, 0, 0]}>
+                      {mockInterviewData?.questionPerformance.map((_, i) => (
+                        <Cell key={i} fill={["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"][i % 4]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-6 space-y-3">
+                {mockInterviewData?.questionPerformance.map((q, index) => {
+                  const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"]
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: colors[index % colors.length] }}
+                        ></div>
+                        <span className="font-medium">{q.question}</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">{q.topic}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {q.score >= 80 ? (
+                          <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <XCircle className="h-4 w-4 text-amber-500" />
+                        )}
+                        <span className="font-semibold">{q.score}%</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
           </Card>
         </div>
 
@@ -389,7 +472,7 @@ export default function InterviewAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-3">
-              {mockInterviewData.technicalKeywords.map((keyword, index) => (
+              {mockInterviewData?.technicalKeywords.map((keyword, index) => (
                 <Badge
                   key={index}
                   variant="secondary"
@@ -415,7 +498,7 @@ export default function InterviewAnalytics() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
-                {mockInterviewData.strengths.map((strength, index) => (
+                {mockInterviewData?.strengths.map((strength, index) => (
                   <li key={index} className="flex items-start gap-4 p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg">
                     <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <CheckCircle className="h-4 w-4 text-white" />
@@ -438,7 +521,7 @@ export default function InterviewAnalytics() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
-                {mockInterviewData.areasForImprovement.map((area, index) => (
+                {mockInterviewData?.areasForImprovement.map((area, index) => (
                   <li key={index} className="flex items-start gap-4 p-3 bg-white/60 dark:bg-slate-800/60 rounded-lg">
                     <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <Target className="h-4 w-4 text-white" />
@@ -471,7 +554,7 @@ export default function InterviewAnalytics() {
                     Technical Competency
                   </h4>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {mockInterviewData.hrInsights.technicalCompetency}
+                    {mockInterviewData?.hrInsights.technicalCompetency}
                   </p>
                 </div>
                 <div className="p-4 bg-white/60 dark:bg-slate-800/60 rounded-xl">
@@ -480,7 +563,7 @@ export default function InterviewAnalytics() {
                     Experience Level
                   </h4>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {mockInterviewData.hrInsights.experienceLevel}
+                    {mockInterviewData?.hrInsights.experienceLevel}
                   </p>
                 </div>
                 <div className="p-4 bg-white/60 dark:bg-slate-800/60 rounded-xl">
@@ -489,7 +572,7 @@ export default function InterviewAnalytics() {
                     Cultural Fit
                   </h4>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {mockInterviewData.hrInsights.culturalFit}
+                    {mockInterviewData?.hrInsights.culturalFit}
                   </p>
                 </div>
               </div>
@@ -500,7 +583,7 @@ export default function InterviewAnalytics() {
                     Learning Potential
                   </h4>
                   <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {mockInterviewData.hrInsights.learningPotential}
+                    {mockInterviewData?.hrInsights.learningPotential}
                   </p>
                 </div>
                 <div className="p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white">
@@ -510,9 +593,9 @@ export default function InterviewAnalytics() {
                   </h4>
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <Progress value={mockInterviewData.hrInsights.interviewReadiness} className="h-3 bg-white/20" />
+                      <Progress value={mockInterviewData?.hrInsights.interviewReadiness} className="h-3 bg-white/20" />
                     </div>
-                    <span className="text-2xl font-bold">{mockInterviewData.hrInsights.interviewReadiness}%</span>
+                    <span className="text-2xl font-bold">{mockInterviewData?.hrInsights.interviewReadiness}%</span>
                   </div>
                   <p className="text-indigo-100 text-sm mt-2">Ready for mid-level positions</p>
                 </div>
@@ -536,7 +619,7 @@ export default function InterviewAnalytics() {
           </CardHeader>
           <CardContent>
             <div className="p-6 bg-white/80 dark:bg-slate-800/80 rounded-xl border-l-4 border-indigo-500">
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">{mockInterviewData.aiNotes}</p>
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">{mockInterviewData?.aiNotes}</p>
             </div>
           </CardContent>
         </Card>
@@ -545,4 +628,17 @@ export default function InterviewAnalytics() {
       </div>
     </div>
   )
+}
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload?.length) {
+    const { question, topic, score } = payload[0].payload
+    return (
+      <div className="rounded-xl border bg-white/90 p-4 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-800/90">
+        <p className="font-semibold text-slate-900 dark:text-slate-100">{question}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">{topic}</p>
+        <p className="font-bold text-indigo-600 dark:text-indigo-400">Score: {score}%</p>
+      </div>
+    )
+  }
+  return null
 }
