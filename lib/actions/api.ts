@@ -4,7 +4,6 @@ import { prisma } from "../prisma";
 import bcrypt from "bcryptjs";
 export async function getProfile(userId:string) {
     try {
-        console.log(userId)
         const resp=await prisma.dashboard.findFirst({
             where:{
                 userId 
@@ -261,7 +260,18 @@ export async function createInterview(dashboardId : string, interviewData: JobDe
                experience: interviewData.experience.toString(),
                Jobtitle: interviewData.jobTitle,
                skills: interviewData.skills,
-               status: "IN_PROGRESS" 
+               status: "IN_PROGRESS" ,
+               Analytics:{
+                create :{
+                                    overallScore: 0,
+                                    CommunicationScore: 0,
+                                    TechnicalScore: 0,
+                                    ProblemSolvingScore: 0,InterviewSummary : "",
+                                    RelevanceScore : 0,
+                                    VocabularyScore : 0 ,
+                                   
+                }
+               }
            },select:{
             id :true,
             description : true,difficulty : true,experience : true,Jobtitle : true,skills : true

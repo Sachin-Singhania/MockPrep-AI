@@ -45,14 +45,12 @@ import { useChatStore } from "@/store/store"
 import { getInterviewDetails } from "@/lib/actions/api"
 import { getStatus } from "@/lib/utils"
 
-// Mock data - in real app, this would come from API
 
 type RadarDataItem = {
   subject: string;
   score: number;
   fullMark: number;
 };
-const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"]
 
 export default function InterviewAnalytics() {
   const [isLoading, setIsLoading] = useState(true);
@@ -91,13 +89,19 @@ useEffect(() => {
           areasForImprovement: res.data?.GrowthAreas,
           candidateName: user.name as string,
           date: new Date(res.data.Interview.startTime),
-          duration: res.data.Interview.endTime
-            ? (
-                (new Date(res.data.Interview.endTime).getTime() -
-                  new Date(res.data.Interview.startTime).getTime()) /
-                60000
-              ).toFixed(0)
-            : "N/A Interview Analytics Failed ",
+           duration: res.data.Interview.endTime
+              ? (() => {
+                  const durationMs =
+                    new Date(res.data.Interview.endTime).getTime() -
+                    new Date(res.data.Interview.startTime).getTime();
+
+                  const totalMinutes = Math.floor(durationMs / 60000);
+                  const hours = Math.floor(totalMinutes / 60);
+                  const minutes = totalMinutes % 60;
+
+                  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+                })()
+              : "N/A Interview Analytics Failed",
           hrInsights: {
             culturalFit: res.data?.HRInsight?.CulturalFit as string,
             experienceLevel: res.data?.HRInsight?.ExperienceLevel as string,
@@ -149,7 +153,6 @@ useEffect(() => {
 }, [interviewId, allAnalytics, user]);
 
  
-
   const getScoreBadgeVariant = (score: number) => {
     if (score >= 80) return "default"
     if (score >= 60) return "secondary"
@@ -175,6 +178,11 @@ useEffect(() => {
         </div>
       </div>
     )
+  }
+const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
   return (

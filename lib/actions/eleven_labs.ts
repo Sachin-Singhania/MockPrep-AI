@@ -13,16 +13,8 @@ export async function synthesizeSpeechStream(message:string) {
         },
     );
       const stream = await audioStream; 
-  const reader = stream.getReader();
-  const chunks: Uint8Array[] = [];
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (value) chunks.push(value);
-  }
-
- return Buffer.concat(chunks).toString("base64");
+ return stream
 }
 export async function transcribeAudio(formData: FormData) {
   const file = formData.get("file") as File;

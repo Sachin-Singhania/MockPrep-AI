@@ -38,7 +38,7 @@ type InterviewChat =
     | {
         id?: string
         questionId : string
-        Sender: "USER" | "ASSISTANT";
+        Sender: "ASSISTANT";
         Content: string;
         ContentType: "VALIDATION";
         score: number;
@@ -48,6 +48,12 @@ type InterviewChat =
         Sender: "USER" | "ASSISTANT";
         Content: string;
         ContentType: "ANSWER" | "FORMALCHAT" | "QUESTION" | "END";
+    } |{
+        id?: string
+        questionId : string
+        Sender: "USER" ;
+        Content: string;
+        ContentType: "ANSWER";
     };
     interface InterviewData extends InterviewInsights {
       date : Date

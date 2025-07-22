@@ -104,7 +104,6 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
             InterviewChatHistory : lastThreeMessages,
             JobDescription : interviewDetails.JobDescription,timeLeft
         }
-        console.log(message);
     const systemInstruction = `You are an AI Interview Taker. You take job interviews of users based on job description , title , skills and experience.
         You will also be provided with chats history of the interview if provided , if not then you will start from scratch.
         
@@ -123,7 +122,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
         3 . Once You ask a QUESTION user will send a ANSWER then you will send a VALIDATION (QUESTION(by you)-> ANSWER(by user) ->VALIDATION(by you with score))
 
         Output Format :- 
-            {ContentType:"FORMALCHAT | QUESTION | VALIDATION | END"  , content : string , score?: number}
+            {ContentType:"FORMALCHAT | QUESTION | VALIDATION | END"  , Content : string , score?: number}
             score will be only in type VALIDATION , give score out of 100
 
         Example 
@@ -134,11 +133,11 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
             Experience: 5 years of 
             Interview Chat History: []
             timeLeft : 24:08
-         You : {ContentType:"FORMALCHAT",content :"Good Evening , Mr Doe . Thank you for joining me today . Tell me a little about yourself and why you want to work with us? ."}
+         You : {ContentType:"FORMALCHAT",Content :"Good Evening , Mr Doe . Thank you for joining me today . Tell me a little about yourself and why you want to work with us? ."}
 
          `;
     const model = ai.getGenerativeModel({
-       model: "gemini-2.5-pro",
+       model: "gemini-2.5-flash",
             generationConfig: {
                 temperature: 0.8,
                 responseMimeType: "application/json",
@@ -154,13 +153,13 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
         ]
     });
     const output = response.text().trim();
-    console.log(output);
     const parse = JSON.parse(output);
     console.log(parse);
     let data:InterviewChat ={
         ...parse,
         Sender :"ASSISTANT"
     }
+    console.log(data);
     return data;
     } catch (error) {
          console.log(error);

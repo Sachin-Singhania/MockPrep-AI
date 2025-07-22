@@ -23,7 +23,15 @@ export default function InterviewSessionPage() {
   const [isBlock, setisBlock] = useState(false)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
-  console.log()
+  const router = useRouter();
+  const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
+  const [fromTranscription, setFromTranscription] = useState(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [interview?.InterviewChatHistory]);
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -36,8 +44,84 @@ export default function InterviewSessionPage() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+    useEffect(() => {
+  if (fromTranscription && message) {
+    sendMessage();
+    setFromTranscription(false);
+  }
+}, [message]);
+
+
+  useEffect(() => {
+    if (!interview) {
+      router.replace("/dashboard");
+    } else {
+      const runFirstMessage = async () => {
+        try {
+          await firstMessage(); 
+        } catch (err) {
+          console.error("Failed to run first message:", err);
+        }
+      };
+      runFirstMessage();
+    }
+  }, []);
+
+
+  useEffect(() => {
+  const enterFullscreen = async () => {
+    try {
+      if (document.fullscreenEnabled) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (err) {
+      console.error("Fullscreen not allowed", err);
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      alert("Tab switch is not allowed during the interview.");
+    }
+  };
+
+  const disableContextMenu = (e: MouseEvent) => e.preventDefault();
+
+  const disableKeys = (e: KeyboardEvent) => {
+    const blockedKeys = ["w", "t", "n","r"];
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    if (isCtrlOrCmd && blockedKeys.includes(e.key.toLowerCase())) {
+      e.preventDefault();
+      alert("Keyboard shortcuts are disabled during the interview.");
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      alert("Exiting fullscreen is not allowed.");
+    }
+  };
+
+  const handleFullscreenChange = () => {
+    if (!document.fullscreenElement) {
+      alert("You exited fullscreen. Interview will now end.");
+    }
+  };
+
+  enterFullscreen();
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  window.addEventListener("contextmenu", disableContextMenu);
+  window.addEventListener("keydown", disableKeys);
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+  return () => {
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.removeEventListener("contextmenu", disableContextMenu);
+    window.removeEventListener("keydown", disableKeys);
+    document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  };
+}, []);
+
   const toggleRecording = async () => {
-    if(isBlock) return;
     if (isRecording) {
       mediaRecorderRef.current?.stop()
       setIsRecording(false)
@@ -64,7 +148,13 @@ export default function InterviewSessionPage() {
         const res = await transcribeAudio(formData);
         setIsRecording(false);
         setisBlock(true);
-        setMessage(res.text);
+          const text = res?.text?.trim();
+          if (text) {
+        setFromTranscription(true);
+        setMessage(text);
+      }
+        console.log(res.text);
+        console.log(message);
         await sendMessage();
       };
 
@@ -75,23 +165,6 @@ export default function InterviewSessionPage() {
       }
     }
   }
-
-  const router = useRouter();
-  const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
-  useEffect(() => {
-    if (!interview) {
-      router.replace("/dashboard");
-    } else {
-      const runFirstMessage = async () => {
-        try {
-          await firstMessage(); // your async call
-        } catch (err) {
-          console.error("Failed to run first message:", err);
-        }
-      };
-      runFirstMessage();
-    }
-  }, [interview]);
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -115,8 +188,9 @@ export default function InterviewSessionPage() {
     return;
    }
   }
-  const sendMessage =async () => {
-       if (message.trim()=="") return
+  const sendMessage =async (inputText?: string) => {
+    const finalMessage = inputText ?? message; 
+       if (finalMessage.trim()=="") return
           if(!interview?.id) return;
        const lastType = interview.InterviewChatHistory.at(-1)?.ContentType;
         if (lastType === "END"){
@@ -132,7 +206,7 @@ export default function InterviewSessionPage() {
         const ContentType = nextTypeMap[lastType as keyof typeof nextTypeMap];
         const newMessage: InterviewChat = {
           Sender: "USER",
-          Content: message,
+          Content: finalMessage,
           ContentType: ContentType ,
         };
           const res= await addMessage(interview?.id,newMessage);
@@ -152,8 +226,12 @@ export default function InterviewSessionPage() {
     if(!aiResponse){
         return;
     }else{
+      const resss= {
+        ...aiResponse,
+      }
+      console.log(aiResponse);
       PlayAudioButton(aiResponse.Content);
-      const res= await addMessage(interview?.id,aiResponse);
+      const res= await addMessage(interview?.id,resss);
       if(res.status==200 && res.data){
             const msg= {
               ...aiResponse,
@@ -166,22 +244,44 @@ export default function InterviewSessionPage() {
           }
     }
   }
-    function PlayAudioButton(message:string) {
-      const handleClick = async (message:string) => {
-          const buffer = await synthesizeSpeechStream(message);
-          const audioBytes = Uint8Array.from(atob(buffer), (c) => c.charCodeAt(0));
-          const blob = new Blob([audioBytes], { type: "audio/mpeg" });
-          const url = URL.createObjectURL(blob);
-          const audio = new Audio(url);
-        try {
-          await audio.play();
-        } catch (error) {
-          console.log(error)
+   function PlayAudioButton(message: string) {
+  const handleClick = async (message: string) => {
+    const stream = await synthesizeSpeechStream(message);
+    const reader = stream.getReader();
+    const mediaSource = new MediaSource();
+
+    const audio = new Audio();
+    audio.src = URL.createObjectURL(mediaSource);
+    audio.play().catch(console.error);
+
+    mediaSource.addEventListener("sourceopen", async () => {
+      const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+      sourceBuffer.mode = "sequence";
+
+      const readAndAppend = async () => {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            mediaSource.endOfStream();
+            break;
+          }
+          if (value && !sourceBuffer.updating) {
+            sourceBuffer.appendBuffer(value);
+          } else {
+            await new Promise((resolve) =>
+              sourceBuffer.addEventListener("updateend", resolve, { once: true })
+            );
+            sourceBuffer.appendBuffer(value);
+          }
         }
-        
       };
-      handleClick(message);
-    }
+
+      readAndAppend();
+    });
+  };
+
+  handleClick(message);
+}
 
   const endInterview = async () => {
     if(!interview) return;
@@ -280,7 +380,7 @@ export default function InterviewSessionPage() {
       </div>
 
       {/* Chat Panel */}
-      <div className="w-96 bg-white flex flex-col">
+      <div className="w-96 bg-white flex flex-col h-screen">
         {/* Chat Header */}
         <div className="p-4 border-b bg-gray-50">
           <div className="flex items-center space-x-3">
@@ -295,7 +395,7 @@ export default function InterviewSessionPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesContainerRef}>
           {interview?.InterviewChatHistory?.map((msg) => (
             <div key={msg.id} className={`flex ${msg.Sender === "USER" ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] ${msg.Sender === "USER" ? "order-2" : "order-1"}`}>
@@ -343,7 +443,7 @@ export default function InterviewSessionPage() {
             />
             <div className="flex flex-col space-y-2">
               <Button
-                onClick={sendMessage}
+                onClick={()=>sendMessage}
                 disabled={!message.trim()}
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700"
