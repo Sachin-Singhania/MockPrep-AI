@@ -11,6 +11,7 @@ import { useChatStore } from "@/store/store"
 import { analytics, InterviewTaking } from "@/lib/actions/rag"
 import { addMessage } from "@/lib/actions/api"
 import { synthesizeSpeechStream, transcribeAudio } from "@/lib/actions/eleven_labs"
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
@@ -19,10 +20,8 @@ export default function InterviewSessionPage() {
   const [timeLeft, setTimeLeft] = useState(600)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [message, setMessage] = useState("")
-  const [isRecording, setIsRecording] = useState(false)
   const [isBlock, setisBlock] = useState(false)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
+
   const router = useRouter();
   const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
   const [fromTranscription, setFromTranscription] = useState(false);
@@ -121,49 +120,28 @@ useEffect(() => {
   };
 }, []);
 
-  const toggleRecording = async () => {
-    if (isRecording) {
-      mediaRecorderRef.current?.stop()
-      setIsRecording(false)
+
+  const {
+    transcript,
+    resetTranscript,listening,
+    browserSupportsSpeechRecognition,
+  } = useSpeechRecognition();
+
+  const toggleRecording = () => {
+    if(isBlock) return;
+    if (listening) {
+      SpeechRecognition.stopListening();
+      setisBlock(true);
+      setMessage(transcript);
+      sendMessage(transcript); 
     } else {
-      try {
-     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        console.log("HELLO");
-        const formData = new FormData();
-        formData.append("file", audioBlob); 
-        formData.append("model_id", "scribe_v1"); 
-
-        const res = await transcribeAudio(formData);
-        setIsRecording(false);
-        setisBlock(true);
-          const text = res?.text?.trim();
-          if (text) {
-        setFromTranscription(true);
-        setMessage(text);
-      }
-        console.log(res.text);
-        console.log(message);
-        await sendMessage();
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      } catch (error) {
-        console.log(error);
-      }
+      resetTranscript();
+      SpeechRecognition.startListening({ continuous: true, language: "en-IN" });
     }
+  };
+
+  if (!browserSupportsSpeechRecognition) {
+    return <p>Speech recognition not supported.</p>;
   }
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -255,7 +233,7 @@ useEffect(() => {
     audio.play().catch(console.error);
 
     mediaSource.addEventListener("sourceopen", async () => {
-      const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+      const sourceBuffer = mediaSource.addSourceBuffer("audio/wav");
       sourceBuffer.mode = "sequence";
 
       const readAndAppend = async () => {
@@ -295,7 +273,7 @@ useEffect(() => {
       nav.push(`/dashboard`);
     }
   }
-
+  
   return (
     <div className="min-h-screen bg-gray-900 flex">
       {/* Video Area */}
@@ -345,9 +323,15 @@ useEffect(() => {
               variant="ghost"
               size="sm"
                onClick={toggleRecording}
-              className={`rounded-full w-12 h-12 ${!isRecording && isBlock ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"} text-white`}
+className={`rounded-full w-12 h-12 ${
+    !listening  && isBlock
+      ? "bg-red-500 hover:bg-red-600" // blocked
+      : listening  && !isBlock
+      ? "bg-gray-600 hover:bg-gray-700" // recording
+      : "bg-gray-700 hover:bg-gray-800" // idle
+  } text-white`}
             >
-              {isRecording && !isBlock ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+              {listening  && !isBlock ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
             </Button>
 
             <Button
@@ -457,3 +441,4 @@ useEffect(() => {
     </div>
   )
 }
+
