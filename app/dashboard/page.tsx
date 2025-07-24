@@ -139,7 +139,7 @@ function DashboardContent() {
       setProfile(profile)
     }
   }, [status])
-
+ 
   return (
     <div className="p-8">
       <div className="mb-8">
@@ -194,15 +194,17 @@ function DashboardContent() {
               <div>
                 <p className="text-sm text-gray-600">Practice Hours</p>
                 <p className="text-2xl font-bold text-gray-900">{
-                     profile?.interview && profile.interview.length > 0
-                       ? profile.interview.reduce((sum, interview) => {
-                           if (interview.endTime && interview.startTime) {
-                             return sum + Math.floor((interview.endTime.getTime() - interview.startTime.getTime()) / 60000);
-                           }
-                           return sum;
-                         }, 0)
-                       : 0
-                  }</p>
+  profile?.interview && profile.interview.length > 0
+    ? profile.interview.reduce((sum, interview) => {
+        if (interview.endTime && interview.startTime) {
+          const diff = interview.endTime.getTime() - interview.startTime.getTime();
+          return sum + (diff / (1000 * 60 * 60)); 
+        }
+        return sum;
+      }, 0).toFixed(1)
+    : 0
+}
+</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <Clock className="w-6 h-6 text-purple-600" />
@@ -217,14 +219,17 @@ function DashboardContent() {
               <div>
                 <p className="text-sm text-gray-600">Success Rate</p>
                 <p className="text-2xl font-bold text-gray-900">{
-                  profile?.interview && profile.interview.length > 0
-                    ? (
-                        profile.interview.filter(
-                          (interview) => (interview.Analytics?.overallScore ?? 0) >= 65
-                        ).length / profile.interview.length
-                      ).toFixed(2)
-                    : 10
-                  }%</p>
+  profile?.interview && profile.interview.length > 0
+    ? (() => {
+        const res =
+          profile.interview.filter(
+            (interview) => (interview.Analytics?.overallScore ?? 0) >= 65
+          ).length / profile.interview.length;
+        return res <= 0 ? 0 : res;
+      })()
+    : 10
+}
+%</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                 <Star className="w-6 h-6 text-orange-600" />
@@ -245,9 +250,9 @@ function DashboardContent() {
         size="sm"
         className="flex items-center gap-2 border-gray-300 hover:bg-gray-50 transition"
       >
-        <Edit className="w-4 h-4" />
+        <Edit className="w-4 h-4"  />
         Edit Profile
-      </Button>
+      </Button >
     </div>
   </CardHeader>
 

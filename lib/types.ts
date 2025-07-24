@@ -66,7 +66,7 @@ type InterviewChat =
 type questionPerformance = {
       id?:string
     question: string;
-    score: number;
+    score?: number;
     topic: string;
     status: string;
 }
@@ -120,4 +120,8 @@ interface getProfile{
       overallScore: number;
     } | null;
   }[];
-}
+}type RadarDataItem = {
+  subject: string;
+  score: number;
+  fullMark: number;
+};

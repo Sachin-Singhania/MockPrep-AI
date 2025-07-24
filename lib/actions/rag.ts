@@ -19,7 +19,7 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
         - If u feel user tagline is random, non-sensical, or meaningless tagline then tell user that its invalid 
         - Requeried Skill will be for the job description you will make not user skills 
         OUTPUT FORMAT :- 
-        {"output": "{jobTitle: string, jobDescription: string, skills: string[], experience: number}"}
+        {"output": "{jobTitle: string, jobDescription: string, skills: string, experience: number}"}
         {"output": "Your tagline seems invalid i can't generate a job description for you."}
         
         Example :-
@@ -29,10 +29,7 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
         You : - {"output": {
                 "jobTitle": "React Developer",
                 "jobDescription": "We are seeking a skilled and passionate React Developer to join our dynamic team. As a React Developer, you will be responsible for developing and implementing user interface components using React concepts and workflows. You will also be responsible for integrating these components with backend services built with Node.js and Next.js. The ideal candidate has a strong understanding of JavaScript, HTML, and CSS, and is proficient in building responsive and accessible web applications. You will be working on projects that require attention to detail and a commitment to writing clean, maintainable code.",
-                "skills": [
-                "react",
-                "nodejs",
-                "nextjs"
+                "skills":"react","nodejs","nextjs"
                 ],
                 "experience": 2}}
            `;
@@ -99,6 +96,7 @@ export async function ResumeExtracter(pdfInput: string): Promise<Resume | string
 
 export async function InterviewTaking(interviewDetails: interviewDetails,timeLeft:string) {
     try {
+        console.log(timeLeft);
         const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-3);
         let message= {
             InterviewChatHistory : lastThreeMessages,
@@ -109,11 +107,12 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
         
         RULES : - 
         1. IF timer is below 00:20 then you will give Closure like Thank you for your time. It was nice talking to you. not this exactly but something like that.
-        2. If user Mishbehaves talks in bad language then give a formal response something like I am ending this interview as it is not going well and send response with type END
+        2. If user Mishbehaves or talks in abusive language then give a formal response something like I am ending this interview as it is not going well and send response with type END
         3. Follow the output format rule especially with the type 
         4. ONLY TALK IN ENGLISH even if user sends response in hindi or any language understand and translate in english and tell user to speak in english only
+    
         INSTRUCTIONS:-
-        0. There is 25 min timer so you will be provided what time is left , So don't waste asking too many casual question.
+        0. There is 25 min timer so you will be provided what time is left , So don't waste asking too many formal question but start with the greeting.
         1. When interviewing the user. If chats are empty then greet the user formally and tell him to introduce.
         2. There are three types of output FORMALCHAT means like greeting, asking hobbies , interest , past company experience , projects , user asking about company goal etc.
             - QUESTION :- this type means you will ask user questions based on job description and skills only
@@ -139,7 +138,6 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
     const model = ai.getGenerativeModel({
        model: "gemini-2.5-flash",
             generationConfig: {
-                temperature: 0.8,
                 responseMimeType: "application/json",
             },
         systemInstruction: {
@@ -154,7 +152,6 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
     });
     const output = response.text().trim();
     const parse = JSON.parse(output);
-    console.log(parse);
     let data:InterviewChat ={
         ...parse,
         Sender :"ASSISTANT"

@@ -15,6 +15,7 @@ export interface Profile extends Resume {
     id: string;
     startTime: Date;
     endTime: Date | null;
+    Jobtitle: string
     Analytics: {
       id: string;
       overallScore: number;

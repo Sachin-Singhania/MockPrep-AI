@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -46,22 +46,20 @@ import { getInterviewDetails } from "@/lib/actions/api"
 import { getStatus } from "@/lib/utils"
 
 
-type RadarDataItem = {
-  subject: string;
-  score: number;
-  fullMark: number;
-};
 
 export default function InterviewAnalytics() {
   const [isLoading, setIsLoading] = useState(true);
-const { interviewId } = useParams() as { interviewId: string };
-const { allAnalytics, user, addOrUpdateAnalytics } = useChatStore();
+const { interviewId } = useParams() ;
+const { allAnalytics, user, addOrUpdateAnalytics,interview } = useChatStore();
 const [mockInterviewData, setMockInterviewData] = useState<InterviewData | null>(null);
 const [radarData, setradarData] = useState<RadarDataItem[] | null>([]);
+const nav=useRouter();
 useEffect(() => {
-  if (!interviewId || !user) return;
+  if (!interviewId || !user) {
+    nav.push("/dashboard")
+  };
 
-  const existingData = allAnalytics[interviewId];
+  const existingData = allAnalytics[interviewId as string];
   if (existingData) {
      let rdata:RadarDataItem[]= [
             { subject: "Communication", score: existingData.InterviewScores.communication, fullMark: 100 },
@@ -81,13 +79,13 @@ useEffect(() => {
 
   const fetchData = async () => {
     try {
-      const res = await getInterviewDetails(interviewId);
+      const res = await getInterviewDetails(interviewId as string);
       if (res.status === 200 ) {
         if(!res.data) return;
         const data: InterviewData = {
           aiNotes: res.data?.InterviewSummary,
           areasForImprovement: res.data?.GrowthAreas,
-          candidateName: user.name as string,
+          candidateName: user?.name as string,
           date: new Date(res.data.Interview.startTime),
            duration: res.data.Interview.endTime
               ? (() => {
@@ -139,7 +137,7 @@ useEffect(() => {
           ...rdata,]
         );
 
-        addOrUpdateAnalytics(interviewId, data);
+        addOrUpdateAnalytics(interviewId as string, data);
         setMockInterviewData(data);
       }
     } catch (err) {
@@ -179,11 +177,7 @@ useEffect(() => {
       </div>
     )
   }
-const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
@@ -341,71 +335,6 @@ const formatTime = (seconds: number) => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Question Performance Bar Chart */}
-          {/* <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-0 shadow-xl">
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
-                  <MessageSquare className="h-5 w-5 text-white" />
-                </div>
-                Question Performance
-              </CardTitle>
-              <CardDescription className="text-base">Individual question breakdown</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[320px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={mockInterviewData?.questionPerformance}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="question" />
-                    <YAxis domain={[0, 100]} />
-                    <Bar activeBar={false} dataKey="score" radius={[8, 8, 0, 0]}>
-                      {mockInterviewData?.questionPerformance.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Bar>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "rgba(255, 255, 255, 0.95)",
-                        border: "none",
-                        borderRadius: "12px",
-                        boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
-                      }}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-6 space-y-3">
-                {mockInterviewData?.questionPerformance.map((q, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                      ></div>
-                      <span className="font-medium">{q.question}</span>
-                      <span className="text-sm text-slate-600 dark:text-slate-400">{q.topic}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {q.score >= 80 ? (
-                        <CheckCircle className="h-4 w-4 text-emerald-500" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-amber-500" />
-                      )}
-                      <span className="font-semibold">{q.score}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card> */}
               <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-xl">
@@ -440,7 +369,7 @@ const formatTime = (seconds: number) => {
                   const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"]
                   return (
                     <div
-                      key={index}
+                      key={q.id}
                       className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
@@ -452,7 +381,7 @@ const formatTime = (seconds: number) => {
                         <span className="text-sm text-slate-600 dark:text-slate-400">{q.topic}</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {q.score >= 80 ? (
+                        {q.score && q.score >= 80 ? (
                           <CheckCircle className="h-4 w-4 text-emerald-500" />
                         ) : (
                           <XCircle className="h-4 w-4 text-amber-500" />

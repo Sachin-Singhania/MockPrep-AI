@@ -44,7 +44,7 @@ export async function getProfile(userId:string) {
                         }
                      },
                      startTime : true,
-                     endTime : true,
+                     endTime : true,Jobtitle : true
                     //  _count : true   
                     }
                 }
@@ -233,7 +233,7 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
             createMany :{
                 data : interviewData.questionPerformance.map((question) => ({
                     question : question.question,
-                    score : question.score,
+                    score : question.score ? question.score : 0,
                     })),
             }
         },

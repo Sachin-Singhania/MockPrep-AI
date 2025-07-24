@@ -9,25 +9,28 @@ import { Textarea } from "@/components/ui/textarea"
 import { Mic, MicOff, Video, VideoOff, Phone, Settings, Send, Bot, User, Clock } from "lucide-react"
 import { useChatStore } from "@/store/store"
 import { analytics, InterviewTaking } from "@/lib/actions/rag"
-import { addMessage } from "@/lib/actions/api"
-import { synthesizeSpeechStream, transcribeAudio } from "@/lib/actions/eleven_labs"
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-
+function uuidv4() {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  );
+}
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
   const jobTitle = searchParams.get("title");
   const nav = useRouter();
+  const [sent, setsent] = useState(false)
+  const [InterviewhasEnd,setInterviewhasEnd] = useState(false)
   const [timeLeft, setTimeLeft] = useState(600)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [message, setMessage] = useState("")
   const [isBlock, setisBlock] = useState(false)
-
   const router = useRouter();
+  const [loading, setloading] = useState(false);
   const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
   const [fromTranscription, setFromTranscription] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-
 useEffect(() => {
   bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 }, [interview?.InterviewChatHistory]);
@@ -52,19 +55,21 @@ useEffect(() => {
 
 
   useEffect(() => {
+    if(sent) return;
     if (!interview) {
       router.replace("/dashboard");
     } else {
-      const runFirstMessage = async () => {
+      const runFirstMessage = () => {
         try {
-          await firstMessage(); 
+          firstMessage(); 
+          setsent(true);
         } catch (err) {
           console.error("Failed to run first message:", err);
         }
       };
       runFirstMessage();
     }
-  }, []);
+  }, [interview, sent]);
 
 
   useEffect(() => {
@@ -132,7 +137,6 @@ useEffect(() => {
     if (listening) {
       SpeechRecognition.stopListening();
       setisBlock(true);
-      setMessage(transcript);
       sendMessage(transcript); 
     } else {
       resetTranscript();
@@ -151,24 +155,22 @@ useEffect(() => {
   const firstMessage= async() =>{
     if(!interview?.id) return;
     const newMessage:InterviewChat = {
+      id: uuidv4(),
       Sender: "ASSISTANT",
-      Content:  `Hi there! Welcome to your ${jobTitle} interview. I'm excited to learn more about you and your experience. What motivated you to apply for this role?`,
+      Content:  `Hi there! Welcome to your ${jobTitle} interview. I'm excited to learn more about you and your experience. lets start with the introduction first?`,
       ContentType :"FORMALCHAT",
     }
-    const res= await addMessage(interview?.id,newMessage);
-    if(res.status==200 && res.data){
-      const msg= {
-        ...newMessage,
-        id: res.data.id,
-      }
-     addInterviewMessage(msg);
-   }else{
-    return;
-   }
+    setisBlock(true);
+    setloading(true);
+    PlayAudioButton(newMessage);
+    setisBlock(false);
   }
   const sendMessage =async (inputText?: string) => {
     const finalMessage = inputText ?? message; 
-       if (finalMessage.trim()=="") return
+       if (finalMessage.trim()=="") {
+        setisBlock(false);
+        return;
+       }
           if(!interview?.id) return;
        const lastType = interview.InterviewChatHistory.at(-1)?.ContentType;
         if (lastType === "END"){
@@ -183,87 +185,115 @@ useEffect(() => {
 
         const ContentType = nextTypeMap[lastType as keyof typeof nextTypeMap];
         const newMessage: InterviewChat = {
+          id : uuidv4(),
           Sender: "USER",
           Content: finalMessage,
           ContentType: ContentType ,
         };
-          const res= await addMessage(interview?.id,newMessage);
-          if(res.status==200 && res.data){
-            const msg= {
-              ...newMessage,
-              id: res.data.id,
-            }
-            console.log(msg);
-            addInterviewMessage(msg);
-            setMessage("")
-          }else{
-            return;
-          }
+        addInterviewMessage(newMessage);
+          // const res= await addMessage(interview?.id,newMessage);
+          // if(res.status==200 && res.data){
+          //   const msg= {
+          //     ...newMessage,
+          //     id: res.data.id,
+          //   }
+          //   console.log(msg);
+          //   setMessage("")
+          // }else{
+          //   return;
+          // }
 
+          setloading(true);
     const aiResponse = await InterviewTaking(interview,formatTime(timeLeft).toString());
     if(!aiResponse){
         return;
     }else{
-      const resss= {
+      const aires:InterviewChat= {
         ...aiResponse,
+        id : uuidv4(),
       }
-      console.log(aiResponse);
-      PlayAudioButton(aiResponse.Content);
-      const res= await addMessage(interview?.id,resss);
-      if(res.status==200 && res.data){
-            const msg= {
-              ...aiResponse,
-              id: res.data.id,
-            }
-            addInterviewMessage(msg);
+      PlayAudioButton(aires);
+      // addInterviewMessage(resss);
            setisBlock(false);
-          }else{
-            return;
-          }
+      // const res= await addMessage(interview?.id,resss);
+      // if(res.status==200 && res.data){
+      //       const msg= {
+      //         ...aiResponse,
+      //         id: res.data.id,
+      //       }
+      //     }else{
+      //       return;
+      //     }
     }
   }
-   function PlayAudioButton(message: string) {
-  const handleClick = async (message: string) => {
-    const stream = await synthesizeSpeechStream(message);
-    const reader = stream.getReader();
-    const mediaSource = new MediaSource();
+  function PlayAudioButton(AiResponse:InterviewChat) {
+  const handleClick = async (AiResponse:InterviewChat) => {
+const res = await fetch(`/api/speak?message=${encodeURIComponent(AiResponse.Content)}`);
 
-    const audio = new Audio();
-    audio.src = URL.createObjectURL(mediaSource);
-    audio.play().catch(console.error);
+if (!res.body) throw new Error("No response body");
 
-    mediaSource.addEventListener("sourceopen", async () => {
-      const sourceBuffer = mediaSource.addSourceBuffer("audio/wav");
-      sourceBuffer.mode = "sequence";
+const mediaSource = new MediaSource();
+const audioUrl = URL.createObjectURL(mediaSource);
+const audio = new Audio(audioUrl);
 
-      const readAndAppend = async () => {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            mediaSource.endOfStream();
-            break;
-          }
-          if (value && !sourceBuffer.updating) {
-            sourceBuffer.appendBuffer(value);
-          } else {
-            await new Promise((resolve) =>
-              sourceBuffer.addEventListener("updateend", resolve, { once: true })
-            );
-            sourceBuffer.appendBuffer(value);
-          }
+mediaSource.addEventListener("sourceopen", async () => {
+  const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+  const reader = res.body!.getReader();
+  const chunks: Uint8Array[] = [];
+
+  const processChunks = async () => {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) chunks.push(value);
+    }
+
+    const finalBuffer = new Blob(chunks, { type: "audio/mpeg" });
+    const arrayBuffer = await finalBuffer.arrayBuffer();
+
+    return new Promise<void>((resolve, reject) => {
+      sourceBuffer.addEventListener("updateend", () => {
+        if (!mediaSource.readyState || sourceBuffer.updating) return;
+        try {
+          mediaSource.endOfStream();
+          resolve();
+        } catch (err) {
+          reject(err);
         }
-      };
+      }, { once: true });
 
-      readAndAppend();
+      sourceBuffer.appendBuffer(arrayBuffer);
     });
   };
 
-  handleClick(message);
+  try {
+    await processChunks();
+  } catch (err) {
+    console.error("Streaming error:", err);
+  }
+});
+
+try {
+  setloading(false);
+  addInterviewMessage(AiResponse);
+  await audio.play();
+
+  if (AiResponse.ContentType === "END") {
+    endInterview();
+  }
+} catch (err) {
+  console.error("Audio play error:", err);
+}
+
+
+    };
+  handleClick(AiResponse);
 }
 
   const endInterview = async () => {
     if(!interview) return;
     try {
+      setInterviewhasEnd(true);
      const data= await analytics(interview);
      if (!data) return;
       addOrUpdateAnalytics(interview.id as string,data);
@@ -386,28 +416,34 @@ className={`rounded-full w-12 h-12 ${
                 <div
                   className={`flex items-start space-x-2 ${msg.Sender === "USER" ? "flex-row-reverse space-x-reverse" : ""}`}
                 >
-                  <Avatar className="w-8 h-8">
-                    {msg.Sender === "ASSISTANT" ? (
-                      <AvatarFallback className="bg-blue-600 text-white">
-                        <Bot className="w-4 h-4" />
-                      </AvatarFallback>
-                    ) : (
-                      <AvatarFallback className="bg-gray-600 text-white">
-                        <User className="w-4 h-4" />
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div
-                    className={`rounded-lg px-3 py-2 ${
-                      msg.Sender === "USER" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
-                    }`}
-                  >
-                    <p className="text-sm">{msg.Content}</p>
-                  </div>
+                    <Avatar className="w-8 h-8">
+                      {msg.Sender === "ASSISTANT" ? (
+                        <AvatarFallback className="bg-blue-600 text-white">
+                          <Bot className="w-4 h-4" />
+                        </AvatarFallback>
+                      ) : (
+                        <AvatarFallback className="bg-gray-600 text-white">
+                          <User className="w-4 h-4" />
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+
+                    <div
+                      className={`rounded-lg px-3 py-2 max-w-xs ${
+                        msg.Sender === "USER"
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-900"
+                      }`}
+                    >
+                        <p className="text-sm">{msg.Content}</p>
+                    </div>
                 </div>
               </div>
             </div>
           ))}
+          {loading &&
+            <LoadingBubble/>
+          }
         </div>
 
         {/* Message Input */}
@@ -442,3 +478,24 @@ className={`rounded-full w-12 h-12 ${
   )
 }
 
+function LoadingBubble() {
+  return (
+    <div className="flex justify-start">
+      <div className="flex max-w-4xl">
+        <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-blue-600 text-white">
+          <Bot className="w-4 h-4" />
+        </div>
+        <div className="px-6 py-4 rounded-2xl bg-white/80 border border-white/20 shadow-lg backdrop-blur-sm">
+          <div className="flex items-center space-x-2">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+            </div>
+            <span className="text-sm text-slate-600">AI is thinking...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

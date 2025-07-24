@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,39 +22,17 @@ import { fillsJob } from "@/lib/actions/rag"
 import { useRouter } from "next/navigation"
 import { createInterview } from "@/lib/actions/api"
 
-const pastInterviews = [
-  {
-    id: 1,
-    jobTitle: "Senior Frontend Developer",
-    company: "TechCorp",
-    date: "2024-01-15",
-    duration: "45 min",
-    score: 88,
-    status: "completed",
-  },
-  {
-    id: 2,
-    jobTitle: "Full Stack Engineer",
-    company: "StartupXYZ",
-    date: "2024-01-10",
-    duration: "60 min",
-    score: 92,
-    status: "completed",
-  },
-  {
-    id: 3,
-    jobTitle: "React Developer",
-    company: "WebSolutions",
-    date: "2024-01-05",
-    duration: "30 min",
-    score: 85,
-    status: "completed",
-  },
-]
-
+interface pastInterviews{
+    id: string;
+    jobTitle: string;
+    date: string;
+    duration: string;
+    score: number;
+}[]
 export function InterviewSection() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const {profile,setInterview,user,interview}=useChatStore();
+  const [interviews, setinterviews] = useState<pastInterviews[] | null>();
   const nav= useRouter();
   const [formData, setFormData] = useState<JobDescription>({
     jobTitle: "",
@@ -63,7 +41,30 @@ export function InterviewSection() {
     experience: 0,
     difficulty: "BEGINNER",
   })
-
+  useEffect(() => {
+    if(!profile){
+      nav.push( "/");
+    };
+    let data: pastInterviews[] = [];
+    if(profile?.interview==null) return;
+if (profile.interview) {
+  data = profile.interview
+      .filter((int) => int.startTime && int.endTime) 
+      .map((int) => ({
+        id: int.id,
+        jobTitle: int.Jobtitle,
+        date: new Date(int.startTime).toLocaleDateString(), 
+        duration: `${getTimeDiffInMins(new Date(int.startTime), new Date(int.endTime!))} mins`,
+        score: int.Analytics?.overallScore || 0,
+      }));
+      setinterviews(data);
+  }
+  
+  }, [profile])
+  function getTimeDiffInMins(startTime:Date , EndTime:Date) {
+const min= Math.floor((EndTime.getMinutes()-startTime.getMinutes()));
+return min;
+}
   const handleInputChange = (field: keyof JobDescription, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -245,7 +246,7 @@ export function InterviewSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Interviews</p>
-                <p className="text-2xl font-bold text-gray-900">{pastInterviews.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{interviews && interviews.length >0 ? interviews.length : 0}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Briefcase className="w-6 h-6 text-blue-600" />
@@ -260,9 +261,10 @@ export function InterviewSection() {
               <div>
                 <p className="text-sm text-gray-600">Average Score</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {Math.round(
-                    pastInterviews.reduce((acc, interview) => acc + interview.score, 0) / pastInterviews.length,
-                  )}
+                  { interviews && interviews.length >0 ? 
+                  Math.round(
+                    interviews.reduce((acc, interview) => acc + interview.score, 0) / interviews.length,
+                  ): 0}
                   %
                 </p>
               </div>
@@ -278,7 +280,11 @@ export function InterviewSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">3</p>
+                <p className="text-2xl font-bold text-gray-900">{interviews && interviews.length>0 ? (()=>{
+                  const today= new Date().getMonth();
+                  const res= interviews.reduce((sum,val)=> val.date.split("/")[0]===(today+1).toString() ? sum+1: 0,0);
+                  return res;
+                })():0}</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-purple-600" />
@@ -310,7 +316,7 @@ export function InterviewSection() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {pastInterviews?.map((interview) => (
+            {interviews && interviews?.map((interview) => (
               <div
                 key={interview.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
@@ -321,7 +327,6 @@ export function InterviewSection() {
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900">{interview.jobTitle}</h4>
-                    <p className="text-sm text-gray-600">{interview.company}</p>
                     <div className="flex items-center space-x-4 mt-1">
                       <span className="text-xs text-gray-500 flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
@@ -351,7 +356,9 @@ export function InterviewSection() {
                       {interview.score >= 90 ? "Excellent" : interview.score >= 80 ? "Good" : "Fair"}
                     </Badge>
                   </div>
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" onClick={()=>{
+                    nav.push(`/interview/${interview.id}`)
+                  }}>
                     View Details
                   </Button>
                 </div>
