@@ -1,46 +1,56 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Calendar, Clock, Star, Briefcase, Sparkles, Play } from "lucide-react"
+import { getTimeDiffInMins } from "@/lib/utils"
 import { useChatStore } from "@/store/store"
-import { fillsJob } from "@/lib/actions/rag"
+import { Briefcase, Calendar, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { createInterview } from "@/lib/actions/api"
+import { useEffect, useMemo, useState } from "react"
+import DialogBox from "./interview/Dialog"
+import InterviewStats from "./interview/Stats"
 
-interface pastInterviews{
-    id: string;
-    jobTitle: string;
-    date: string;
-    duration: string;
-    score: number;
-}[]
+
 export function InterviewSection() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const {profile,setInterview,user,interview}=useChatStore();
+  const {profile}=useChatStore();
   const [interviews, setinterviews] = useState<pastInterviews[] | null>();
   const nav= useRouter();
-  const [formData, setFormData] = useState<JobDescription>({
-    jobTitle: "",
-    jobDescription: "",
-    skills: "",
-    experience: 0,
-    difficulty: "BEGINNER",
-  })
+ 
+    const pastInterviews = useMemo(() => {
+    if (!profile?.interview) return [];
+    
+    return profile.interview
+      .filter(int => int.startTime && int.endTime)
+      .map(int => ({
+        id: int.id,
+        jobTitle: int.Jobtitle,
+        date:  new Date(int.startTime).toLocaleDateString(),
+        duration: getTimeDiffInMins(new Date(int.startTime), new Date(int.endTime!)), 
+        score: int.Analytics?.overallScore || 0,
+      }));
+  }, [profile?.interview]);
+
+  
+    const interviewStats = useMemo(() => {
+    const totalCount = pastInterviews.length;
+    if (totalCount === 0) {
+      return { totalCount: 0, averageScore: 0, thisMonthCount: 0, totalHours: "0h" };
+    }
+
+    const totalScore = pastInterviews.reduce((acc, curr) => acc + curr.score, 0);
+    const averageScore = Math.round(totalScore / totalCount);
+
+    const currentMonth = new Date().getMonth();
+    const thisMonthCount = pastInterviews.filter(p => p.date.split("/")[0] === (currentMonth+1).toString()).length;
+
+    const totalMinutes = pastInterviews.reduce((acc, curr) => acc + curr.duration, 0);
+    const totalHours = (totalMinutes / 60).toFixed(1);
+
+    return { totalCount, averageScore, thisMonthCount, totalHours: `${totalHours}h` };
+  }, [pastInterviews]);
+
+
   useEffect(() => {
     if(!profile){
       nav.push( "/");
@@ -59,255 +69,13 @@ if (profile.interview) {
       }));
       setinterviews(data);
   }
-  
   }, [profile])
-  function getTimeDiffInMins(startTime:Date , EndTime:Date) {
-const min= Math.floor((EndTime.getMinutes()-startTime.getMinutes()));
-return min;
-}
-  const handleInputChange = (field: keyof JobDescription, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: field === "experience" ? Number(value) : value,
-    }))
-  }
-
-  const generateJobDetails = async () => {
-    if(!profile) return;
-    if(!profile.tagline) return;
-    let experience = profile.WorkExperience;
-    let currentYear= new Date().getFullYear();
-    let min=currentYear,max=0;
-    for (let index = 0; index < experience.length; index++) {
-      const {startYear,endYear} = experience[index];
-      if(endYear){
-        if(max<endYear){
-          max=endYear;
-        }
-      }
-      if(min>startYear){
-        min=startYear;
-      }
-    }
-    if(max<=currentYear) max =currentYear;
-    const data:UserDetails={
-      userExperience : max-min==0 ? 0 : max-min  ,
-      userSkills : Array.from(profile.Skills),
-      userTagline : profile.tagline,
-    }
-    const response = await fillsJob(data)
-     if(typeof response ==="object"){
-       setFormData(response);
-       if(!user?.dashboardId) return;
-       const resp=await createInterview(user?.dashboardId ,formData);
-       if(!resp) return;
-       const data:interviewDetails={
-        InterviewChatHistory : [],
-        JobDescription :response,
-        name : user.name as string,
-        startTime : new Date(),
-        id : resp?.data.id
-       }
-       setInterview(data);
-      }else{
-       console.log(response);
-     }
-    return;
-  }
-
-  const startInterview = async() => {
-    if(!interview){
-      if(!user?.dashboardId) return;
-      const resp=await createInterview(user?.dashboardId ,formData);
-      if(!resp) return;
-      const data:interviewDetails={
-        InterviewChatHistory : [],
-        JobDescription :formData,
-        name : user.name as string,
-        startTime : new Date(),
-        id : resp?.data.id
-      }
-      setInterview(data);
-    }
-    nav.push (`/interview/session?title=${encodeURIComponent(formData.jobTitle)}`)
-    return;
-  }
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Interviews</h2>
-          <p className="text-gray-600">Manage your interview sessions and practice history</p>
-        </div>
-
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              New Interview
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Interview</DialogTitle>
-              <DialogDescription>Set up a new interview session with job details and requirements</DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-6 py-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="jobTitle">Job Title</Label>
-                  <Input
-                    id="jobTitle"
-                    placeholder="e.g. Senior Frontend Developer"
-                    value={formData.jobTitle}
-                    onChange={(e) => handleInputChange("jobTitle", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label >Difficulty Level</Label>
-                  <Select value={formData.difficulty ?? "SELECT"} onValueChange={(value) => handleInputChange("difficulty", value)}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select level">
-                        {formData.difficulty === "BEGINNER"
-                          ? "BEGINNER"
-                          : formData.difficulty === "INTERMEDIATE"
-                          ? "INTERMEDIATE"
-                          : formData.difficulty === "ADVANCED"
-                          ? "ADVANCED"
-                          : ""}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BEGINNER">BEGINNER</SelectItem>
-                      <SelectItem value="INTERMEDIATE">INTERMEDIATE</SelectItem>
-                      <SelectItem value="ADVANCED">ADVANCED</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Job Description</Label>
-                <Textarea
-                  id="description"
-                  rows={4}
-                  placeholder="Paste the job description here..."
-                  value={formData.jobDescription}
-                  onChange={(e) => handleInputChange("jobDescription", e.target.value)}
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="skills">Required Skills</Label>
-                  <Input
-                    id="skills"
-                    placeholder="e.g. React, JavaScript, Node.js"
-                    value={formData.skills}
-                    onChange={(e) => handleInputChange("skills", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="experience">Experience Level</Label>
-                  <Input
-                    id="experience"
-                    placeholder="e.g. 3-5 years"
-                    value={formData.experience}
-                    onChange={(e) => handleInputChange("experience", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={generateJobDetails} className="flex-1 bg-transparent">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Job Details with AI
-                </Button>
-                <Button
-                  onClick={startInterview}
-                  disabled={!formData.jobTitle || !formData.jobDescription || !formData.skills || !formData.experience}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Interview
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+      <DialogBox />
       {/* Interview Stats */}
-      <div className="grid md:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Interviews</p>
-                <p className="text-2xl font-bold text-gray-900">{interviews && interviews.length >0 ? interviews.length : 0}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Average Score</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  { interviews && interviews.length >0 ? 
-                  Math.round(
-                    interviews.reduce((acc, interview) => acc + interview.score, 0) / interviews.length,
-                  ): 0}
-                  %
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Star className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">This Month</p>
-                <p className="text-2xl font-bold text-gray-900">{interviews && interviews.length>0 ? (()=>{
-                  const today= new Date().getMonth();
-                  const res= interviews.reduce((sum,val)=> val.date.split("/")[0]===(today+1).toString() ? sum+1: 0,0);
-                  return res;
-                })():0}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Time</p>
-                <p className="text-2xl font-bold text-gray-900">2.3h</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <Clock className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
+      <InterviewStats stats={interviewStats}/>
       {/* Past Interviews */}
       <Card>
         <CardHeader>
@@ -370,3 +138,11 @@ return min;
     </div>
   )
 }
+
+
+ 
+
+
+ 
+
+

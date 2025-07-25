@@ -369,7 +369,7 @@ useEffect(() => {
                   const colors = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b"]
                   return (
                     <div
-                      key={q.id}
+                      key={index}
                       className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg"
                     >
                       <div className="flex items-center gap-3">

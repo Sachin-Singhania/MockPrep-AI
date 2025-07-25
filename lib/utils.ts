@@ -19,6 +19,11 @@ export function getStatus(score: number): { status: string} {
     }
 }
 
+export function getTimeDiffInMins(startTime:Date , EndTime:Date) {
+const min= Math.floor((EndTime.getMinutes()-startTime.getMinutes()));
+return min;
+}
+
 //   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
 //   const audioChunksRef = useRef<Blob[]>([])
   // const toggleRecording = async () => {

@@ -20,6 +20,13 @@ interface JobDescription {
     experience: number;
     difficulty : "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 }
+interface pastInterviews{
+    id: string;
+    jobTitle: string;
+    date: string;
+    duration: string;
+    score: number;
+}[]
 interface interviewDetails {
     id? : string;
     JobDescription: JobDescription,

@@ -9,6 +9,7 @@ const ai = new GoogleGenAI(process.env.APIKEY as string);
 
 export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription| string> {
     try {
+        console.log("HELL")
         const query = ` Create a Job Description based on user details.
         User Details:
         User Tagline : ${UserDetails.userTagline},
@@ -49,6 +50,7 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
             
         const data = JSON.parse(output);
         const res:JobDescription | string= data.output;
+        console.log(res);
         return res
     } catch (error) {
         console.log(error)
@@ -119,7 +121,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
             - VALIDATION :- this type means you will validate user answers if user provide an answer to your response type QUESTION
             - END :- If User uses bad language or time is below 20 seconds then send this type of ContentType
         3 . Once You ask a QUESTION user will send a ANSWER then you will send a VALIDATION (QUESTION(by you)-> ANSWER(by user) ->VALIDATION(by you with score))
-
+        4. You are given a message which includes chats of last three message understand the intent of the message then reply
         Output Format :- 
             {ContentType:"FORMALCHAT | QUESTION | VALIDATION | END"  , Content : string , score?: number}
             score will be only in type VALIDATION , give score out of 100
@@ -136,7 +138,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
 
          `;
     const model = ai.getGenerativeModel({
-       model: "gemini-2.5-flash",
+       model: "gemini-1.5-flash",
             generationConfig: {
                 responseMimeType: "application/json",
             },

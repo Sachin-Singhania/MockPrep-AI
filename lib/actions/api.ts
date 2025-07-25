@@ -45,7 +45,6 @@ export async function getProfile(userId:string) {
                      },
                      startTime : true,
                      endTime : true,Jobtitle : true
-                    //  _count : true   
                     }
                 }
             }
@@ -192,7 +191,6 @@ export async function addMessage(interviewId : string, content:InterviewChat ) {
     }
 }
 export async function setInterviewDetails(interviewData:InterviewData,interviewDetails:interviewDetails,endTime:Date) {
-    
     try{
     await prisma.interview.update({
         where: { id: interviewDetails.id},
@@ -232,7 +230,7 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
         questions :{
             createMany :{
                 data : interviewData.questionPerformance.map((question) => ({
-                    question : question.question,
+                    question : question.topic,
                     score : question.score ? question.score : 0,
                     })),
             }
@@ -251,7 +249,6 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
 }
 export async function createInterview(dashboardId : string, interviewData: JobDescription) {
     try {
-        console.log(interviewData);
         const response = await prisma.interview.create({
            data:{
                dashboardId,
@@ -351,3 +348,4 @@ export async function register(type : "SIGNIN"|"SIGNUP",email : string, password
         
     }
 }
+

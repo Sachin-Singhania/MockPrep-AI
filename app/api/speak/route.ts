@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     },
     body: JSON.stringify({
       text:message,
-      model_id: "eleven_multilingual_v2",
+      model_id: "eleven_turbo_v2",
     }),
   });
 
