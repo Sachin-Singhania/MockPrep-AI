@@ -1,7 +1,12 @@
 "use server"
+import { getServerSession } from "next-auth";
 import { Level, QuestionType, Sender } from "../generated/prisma";
 import { prisma } from "../prisma";
 import bcrypt from "bcryptjs";
+import { authOptions } from "../auth";
+import { uuidv4 } from "../utils";
+import { redis } from "../redis";
+import { cookies } from "next/headers";
 export async function getProfile(userId:string) {
     try {
         const resp=await prisma.dashboard.findFirst({
@@ -161,8 +166,17 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
 }
 export async function createInterview(dashboardId : string, interviewData: JobDescription) {
     try {
+        const id = uuidv4();
+        const {success}=await startInterviewAndCreateSession(id);
+       if (!success){
+        return {
+            status : false,
+            message: "Failed to start interview and create session",
+            data: null,
+        }}
         const response = await prisma.interview.create({
            data:{
+            id ,
                dashboardId,
                description: interviewData.jobDescription,
                difficulty: interviewData.difficulty as Level,
@@ -186,12 +200,18 @@ export async function createInterview(dashboardId : string, interviewData: JobDe
             description : true,difficulty : true,experience : true,Jobtitle : true,skills : true
            }
         });
+ 
         return {
+            status: true,
             message : "Interview created successfully",
-            data : response
+            data : response,
         };
     } catch (error) {
-         console.error(error);
+        return {
+            status: false,
+            message: "Failed to create interview",
+            data: null,
+        }
     }
 }
 export async function register(type : "SIGNIN"|"SIGNUP",email : string, password: string,name?:string) {
@@ -261,3 +281,152 @@ export async function register(type : "SIGNIN"|"SIGNUP",email : string, password
     }
 }
 
+type ProjectData = {
+    name: string;
+    description: string;
+};
+
+type WorkInfoData = {
+    company: string;
+    role: string;
+    startYear: number;
+    endYear?: number | null;
+};
+
+type UpdateProfilePayload = {
+    tagline?: string;
+    about?: string;
+    skills?: string[];
+    projectsToAdd?: ProjectData[];
+    projectIdsToRemove?: string[];
+    workExperienceToAdd?: WorkInfoData[];
+    workExperienceIdsToRemove?: string[];
+};
+
+
+export async function updateProfile(payload: UpdateProfilePayload) {
+    // 1. Authentication & Authorization
+    // Get the authenticated user's ID from your auth provider (e.g., Clerk, NextAuth)
+    const data = await getServerSession(authOptions);
+    if (!data?.user?.userId) {
+        return { success: false, error: "Authentication failed: User not found." };
+    }
+    const userId = data.user.userId;
+
+    try {
+        // 2. Find the user's dashboard and profile
+        // We need the profileId to link new projects and work experience
+        const dashboard = await prisma.dashboard.findUnique({
+            where: { userId: userId },
+            include: { Profile: true },
+        });
+
+        if (!dashboard || !dashboard.Profile) {
+            return { success: false, error: "Profile not found for the current user." };
+        }
+        const profileId = dashboard.Profile.id;
+
+        // 3. Perform all database operations within a transaction
+        await prisma.$transaction(async (tx) => {
+            // A. Update simple fields on the Profile model
+            await tx.profile.update({
+                where: { id: profileId },
+                data: {
+                    tagline: payload.tagline,
+                    about: payload.about,
+                    Skills: payload.skills, // Prisma handles the string array update
+                },
+            });
+
+            // B. Handle Projects to Add
+            if (payload.projectsToAdd && payload.projectsToAdd.length > 0) {
+                await tx.project.createMany({
+                    data: payload.projectsToAdd.map(proj => ({
+                        ...proj,
+                        profileId: profileId, // Link to the user's profile
+                    })),
+                });
+            }
+
+            // C. Handle Projects to Remove
+            if (payload.projectIdsToRemove && payload.projectIdsToRemove.length > 0) {
+                await tx.project.deleteMany({
+                    where: {
+                        id: { in: payload.projectIdsToRemove },
+                        profileId: profileId, // Security: ensure user can only delete their own projects
+                    },
+                });
+            }
+
+            // D. Handle Work Experience to Add
+            if (payload.workExperienceToAdd && payload.workExperienceToAdd.length > 0) {
+                await tx.workInfo.createMany({
+                    data: payload.workExperienceToAdd.map(exp => ({
+                        ...exp,
+                        profileId: profileId, // Link to the user's profile
+                    })),
+                });
+            }
+
+            // E. Handle Work Experience to Remove
+            if (payload.workExperienceIdsToRemove && payload.workExperienceIdsToRemove.length > 0) {
+                await tx.workInfo.deleteMany({
+                    where: {
+                        id: { in: payload.workExperienceIdsToRemove },
+                        profileId: profileId, // Security: ensure user can only delete their own experience
+                    },
+                });
+            }
+        });
+
+        // 4. Revalidate the path to show updated data immediately
+        // This clears the server-side cache for the profile page.
+
+        return { success: true, message: "Profile updated successfully!" };
+
+    } catch (error) {
+        console.error("Failed to update profile:", error);
+        return { success: false, error: "An unexpected error occurred while updating the profile." };
+    }
+}
+
+async function startInterviewAndCreateSession(interviewId: string) {
+    const data = await getServerSession(authOptions);
+    if (!data?.user?.userId) {
+        return { success: false, error: "Authentication failed: User not found." };
+    }
+    const userId = data.user.userId;
+    if (!userId) {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    try {
+
+        // 2. Generate a secure, random token
+        const sessionToken = uuidv4().toString();
+
+        // 3. Prepare the session data to store
+        const sessionData = {
+            userId: userId,
+            interviewId: interviewId,
+        };
+
+        // 4. Store the session in Redis with a 25-minute expiry (1500 seconds)
+        await redis.set(
+            `tts-session:${sessionToken}`, // Prefix for clarity
+            JSON.stringify(sessionData),
+            { ex: 23 * 60 } // ex = expire in seconds
+        );
+         cookies().set('tts-session-token', sessionToken, {
+            httpOnly: true, // Prevents client-side JS access
+            secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+            path: '/', // Available for all paths
+            maxAge: 23 * 60, // Cookie expiry in seconds, matching Redis TTL
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to start interview session:", error);
+        return { success: false};
+    }
+}

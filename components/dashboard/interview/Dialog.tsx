@@ -81,13 +81,13 @@ export default function DialogBox () {
         return;
       }
       const resp=await createInterview(user?.dashboardId ,formData);
-      if(!resp) return;
+      if(!resp?.status) return;
       const data:interviewDetails={
         InterviewChatHistory : [],
         JobDescription :formData,
         name : user.name as string,
         startTime : new Date(),
-        id : resp?.data.id
+        id : resp?.data?.id
       }
       setInterview(data);
 

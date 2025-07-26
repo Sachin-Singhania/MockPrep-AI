@@ -7,7 +7,7 @@ export const redis = new Redis({
 });
 export const ratelimit = new Ratelimit({
   redis,
-  limiter: Ratelimit.fixedWindow(50, '1 m'),
+  limiter: Ratelimit.fixedWindow(15, '60 s'),
 });
 
 export const signin_rate_limit = new Ratelimit({

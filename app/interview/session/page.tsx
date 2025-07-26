@@ -12,6 +12,7 @@ import { analytics, InterviewTaking } from "@/lib/actions/rag"
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { LoadingBubble } from "@/components/ui/LoadingBubble"
 import { uuidv4 } from "@/lib/utils"
+import { toast } from "sonner"
 
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
@@ -207,7 +208,33 @@ useEffect(() => {
   }
   function PlayAudioButton(AiResponse:InterviewChat) {
   const handleClick = async (AiResponse:InterviewChat) => {
-const res = await fetch(`/api/speak?message=${encodeURIComponent(AiResponse.Content)}`);
+    const res = await fetch(`/api/speak`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ text: AiResponse.Content }),
+    });
+    if (!res.ok) {
+        const errorData = await res.json();
+        console.error("API Error:", errorData.error);
+
+        if (res.status === 400) {
+            return;
+        }
+        
+        if (res.status === 401 || res.status === 403) {
+            router.push('/login');
+            return;
+        }
+        if (res.status === 429) {
+          toast("You Are rate limitted",{
+            richColors : true
+          })
+          return;
+        }
+        return;
+    }
 
 if (!res.body) throw new Error("No response body");
 

@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog"
 import { Briefcase, Plus, X } from "lucide-react"
 import { useMemo, useState } from "react"
+import { usePrevious } from "./Hook"
+
 export default function Exp({ experiences }: { experiences: Experience[] | undefined }) {
     const originalExperience = useMemo(() => experiences ?? [], [experiences])
     const [expRemovedIds, setexpRemovedIds] = useState<string[]>([])
@@ -15,6 +17,21 @@ export default function Exp({ experiences }: { experiences: Experience[] | undef
     const setExperiences = (experiences: Experience) => {
         setnewExp((prevExp) => [...prevExp ?? [], experiences])
     }
+//   const prevExperiences = usePrevious(originalExperiences);
+//     // This effect detects changes from the AI resume extractor
+//     useEffect(() => {
+//         if (prevExperiences && prevExperiences !== originalExperiences) {
+//             // Find experiences that are in the new prop but weren't in the old one
+//             const newItemsFromAI = originalExperiences.filter(exp => 
+//                 !prevExperiences.some(prevExp => prevExp.id === exp.id)
+//             );
+
+//             // If new experiences were found, add them to our "added" change list
+//             if (newItemsFromAI.length > 0) {
+//                 setAddedExperiences(currentAdded => [...currentAdded, ...newItemsFromAI]);
+//             }
+//         }
+//     }, [originalExperiences, prevExperiences]);
     const removeExp = (exp: Experience) => {
         if (exp.id && originalExperience) {
             setexpRemovedIds((prev) => [...prev ?? [], exp.id as string])

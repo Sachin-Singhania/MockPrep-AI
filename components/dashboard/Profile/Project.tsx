@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog"
 import { Plus, X } from "lucide-react"
 import { useMemo, useState } from "react"
+import { usePrevious } from "./Hook"
 
 
 
@@ -19,7 +20,18 @@ import { useMemo, useState } from "react"
     const handleAddProject = (proj: Project) => {
         setNewProjects((prev) => [...prev, proj])
     }
+        // const prevProjects = usePrevious(originalProjects);
+  // useEffect(() => {
+  //       if (prevProjects && prevProjects !== originalProjects) {
+  //           const newItemsFromAI = originalProjects.filter(proj => 
+  //               !prevProjects.some(prevProj => prevProj.id === proj.id)
+  //           );
 
+  //           if (newItemsFromAI.length > 0) {
+  //               setAddedProjects(currentAdded => [...currentAdded, ...newItemsFromAI]);
+  //           }
+  //       }
+  //   }, [originalProjects, prevProjects]);
     const removeProject = (proj: Project) => {
         if (proj.id) {
             setRemovedProjectIds((prev) => [...prev, proj.id!])

@@ -27,7 +27,26 @@ import { useMemo, useState } from "react"
             setSkillInput("")
         }
     }
+//      const prevSkills = usePrevious(originalSkills);
 
+//   // This effect now intelligently handles prop changes from the AI
+//   useEffect(() => {
+//     // Ensure prevSkills exists and has actually changed to avoid running on mount
+//     if (prevSkills && prevSkills !== originalSkills) {
+//       const newItemsFromAI = new Set<string>();
+//       // Find skills that are in the new prop but weren't in the old one
+//       for (const skill of originalSkills) {
+//         if (!prevSkills.has(skill)) {
+//           newItemsFromAI.add(skill);
+//         }
+//       }
+
+//       // If new skills were found, add them to our "added" list
+//       if (newItemsFromAI.size > 0) {
+//         setAddedSkills(currentAdded => new Set([...currentAdded, ...newItemsFromAI]));
+//       }
+//     }
+//   }, [originalSkills, prevSkills]);
     const removeSkill = (skill: string) => {
         if (newSkills.has(skill)) {
             const updated = new Set(newSkills)
