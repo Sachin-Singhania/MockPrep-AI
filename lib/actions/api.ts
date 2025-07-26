@@ -1,5 +1,5 @@
 "use server"
-import { Level, QuestionType } from "../generated/prisma";
+import { Level, QuestionType, Sender } from "../generated/prisma";
 import { prisma } from "../prisma";
 import bcrypt from "bcryptjs";
 export async function getProfile(userId:string) {
@@ -102,94 +102,6 @@ export async function getInterviewDetails(interviewId:string)  {
     };
     
 }
-export async function addMessage(interviewId : string, content:InterviewChat ) {
-    try {
-        if (!interviewId) {
-            return {
-                message: "Analytics ID is required",
-                status: 400,
-                data : null
-                }
-            }
-            const data={
-                   content : content.Content ,
-                    Sender : content.Sender,
-                    type : content.ContentType,
-                    interviewId : interviewId ,
-            }
-                   const {message:response}=await prisma.$transaction(async (tx) => {
-                           const message= await tx.message.create({
-                                data,omit:{
-                                    createdAt : true ,
-                                    updatedAt : true ,
-                                    interviewId : true ,
-                                }
-                            });
-                    if (content.ContentType === "QUESTION") {
-                               await tx.analytics.upsert({
-                                where: { interviewId },
-                                create: {
-                                    interviewId,
-                                    overallScore: 0,
-                                    CommunicationScore: 0,
-                                    TechnicalScore: 0,
-                                    ProblemSolvingScore: 0,InterviewSummary : "",
-                                    RelevanceScore : 0,
-                                    VocabularyScore : 0 ,
-                                    questions: {
-                                    create: {
-                                        question: content.Content ,
-                                        score: 0,
-                                    },
-                                    },
-                                },
-                                update: {
-                                    questions: {
-                                    create: {
-                                        question: content.Content,
-                                        score: 0,
-                                    },
-                                    },
-                                },
-                                });
-                            }
-
-                            if (content.ContentType === "VALIDATION") {
-                              await tx.analytics.update({
-                                where: { interviewId },
-                                data: {
-                                    questions: {
-                                    update: {
-                                        where: { id: content.questionId },
-                                        data: { score: content.score },
-                                    },
-                                    },
-                                },
-                                });
-                            }
-                            return {
-                                message
-                            }
-                            });
-
-            return{
-                message: "Message added successfully",
-                status: 200,
-                data: {
-                    id : response.id ,
-                    Content : response.content as InterviewChat["ContentType"],
-                    Sender : response.Sender  ,
-                    ContentType : response.type,
-                }
-            }
-    } catch (error) {
-         return {
-            message: "Error adding message",
-            status: 500,
-            data : null
-         }
-    }
-}
 export async function setInterviewDetails(interviewData:InterviewData,interviewDetails:interviewDetails,endTime:Date) {
     try{
     await prisma.interview.update({
@@ -202,7 +114,7 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
                     data : interviewDetails.InterviewChatHistory.map((message) => ({
                       content :message.Content,
                       type : message.ContentType as QuestionType,
-                        Sender : message.Sender
+                        Sender : message.Sender,id:message.id
                     }))
                 }
             },
@@ -236,7 +148,7 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
             }
         },
                 }
-            }
+            },
         }
     })
     return {

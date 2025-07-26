@@ -10,11 +10,9 @@ import { Mic, MicOff, Video, VideoOff, Phone, Settings, Send, Bot, User, Clock }
 import { useChatStore } from "@/store/store"
 import { analytics, InterviewTaking } from "@/lib/actions/rag"
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-function uuidv4() {
-  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
-    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
-  );
-}
+import { LoadingBubble } from "@/components/ui/LoadingBubble"
+import { uuidv4 } from "@/lib/utils"
+
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
   const jobTitle = searchParams.get("title");
@@ -27,14 +25,17 @@ export default function InterviewSessionPage() {
   const [isBlock, setisBlock] = useState(false)
   const router = useRouter();
   const [loading, setloading] = useState(false);
-  const {interview,addOrUpdateAnalytics,addInterviewMessage}=useChatStore();
+  const {interview,addOrUpdateAnalytics,addInterviewMessage,questions,addInterviewQuestion,updateInterviewQuestion}=useChatStore();
   const [fromTranscription, setFromTranscription] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  
+  const {transcript,resetTranscript,listening} = useSpeechRecognition();
 useEffect(() => {
   bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 }, [interview?.InterviewChatHistory]);
-  useEffect(() => {
+  
+useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -46,13 +47,13 @@ useEffect(() => {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
     useEffect(() => {
   if (fromTranscription && message) {
     sendMessage();
     setFromTranscription(false);
   }
 }, [message]);
-
 
   useEffect(() => {
     if(sent) return;
@@ -70,7 +71,6 @@ useEffect(() => {
       runFirstMessage();
     }
   }, [interview, sent]);
-
 
   useEffect(() => {
   const enterFullscreen = async () => {
@@ -126,11 +126,6 @@ useEffect(() => {
 }, []);
 
 
-  const {
-    transcript,
-    resetTranscript,listening,
-    browserSupportsSpeechRecognition,
-  } = useSpeechRecognition();
 
   const toggleRecording = () => {
     if(isBlock) return;
@@ -144,9 +139,6 @@ useEffect(() => {
     }
   };
 
-  if (!browserSupportsSpeechRecognition) {
-    return <p>Speech recognition not supported.</p>;
-  }
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
@@ -167,11 +159,12 @@ useEffect(() => {
   }
   const sendMessage =async (inputText?: string) => {
     const finalMessage = inputText ?? message; 
-       if (finalMessage.trim()=="") {
-        setisBlock(false);
-        return;
-       }
-          if(!interview?.id) return;
+        if (finalMessage.trim()=="") {
+          setisBlock(false);
+          return;
+        }
+        setMessage("")
+       if(!interview?.id) return;
        const lastType = interview.InterviewChatHistory.at(-1)?.ContentType;
         if (lastType === "END"){
           endInterview();
@@ -180,7 +173,7 @@ useEffect(() => {
         const nextTypeMap = {
           FORMALCHAT: "FORMALCHAT",
           QUESTION: "ANSWER",
-          VALIDATION: "FORMALCHAT",
+          VALIDATION : "FORMALCHAT",
         } as const;
 
         const ContentType = nextTypeMap[lastType as keyof typeof nextTypeMap];
@@ -191,17 +184,6 @@ useEffect(() => {
           ContentType: ContentType ,
         };
         addInterviewMessage(newMessage);
-          // const res= await addMessage(interview?.id,newMessage);
-          // if(res.status==200 && res.data){
-          //   const msg= {
-          //     ...newMessage,
-          //     id: res.data.id,
-          //   }
-          //   console.log(msg);
-          //   setMessage("")
-          // }else{
-          //   return;
-          // }
 
           setloading(true);
     const aiResponse = await InterviewTaking(interview,formatTime(timeLeft).toString());
@@ -212,18 +194,15 @@ useEffect(() => {
         ...aiResponse,
         id : uuidv4(),
       }
+      if(aires.ContentType === "QUESTION"){
+        addInterviewQuestion(aires);
+      }
+      if(aires.ContentType== "VALIDATION"){
+         const lastQuestionId = questions?.length ? questions[questions.length - 1].id : "";
+         if (lastQuestionId) updateInterviewQuestion(lastQuestionId,aires.score);
+      }
       PlayAudioButton(aires);
-      // addInterviewMessage(resss);
            setisBlock(false);
-      // const res= await addMessage(interview?.id,resss);
-      // if(res.status==200 && res.data){
-      //       const msg= {
-      //         ...aiResponse,
-      //         id: res.data.id,
-      //       }
-      //     }else{
-      //       return;
-      //     }
     }
   }
   function PlayAudioButton(AiResponse:InterviewChat) {
@@ -284,17 +263,14 @@ try {
 } catch (err) {
   console.error("Audio play error:", err);
 }
-
-
     };
   handleClick(AiResponse);
 }
-
   const endInterview = async () => {
     if(!interview) return;
     try {
       setInterviewhasEnd(true);
-     const data= await analytics(interview);
+     const data= await analytics(interview,questions ?? []);
      if (!data) return;
       addOrUpdateAnalytics(interview.id as string,data);
       nav.push(`/interview/${interview.id}`);
@@ -305,6 +281,12 @@ try {
   }
   
   return (
+    <>
+      {InterviewhasEnd  &&  (
+        <div>
+        Interview has ended
+      </div>
+    )}
     <div className="min-h-screen bg-gray-900 flex">
       {/* Video Area */}
       <div className="flex-1 relative">
@@ -353,31 +335,32 @@ try {
               variant="ghost"
               size="sm"
                onClick={toggleRecording}
-className={`rounded-full w-12 h-12 ${
-    !listening  && isBlock
-      ? "bg-red-500 hover:bg-red-600" // blocked
-      : listening  && !isBlock
-      ? "bg-gray-600 hover:bg-gray-700" // recording
-      : "bg-gray-700 hover:bg-gray-800" // idle
-  } text-white`}
-            >
+               disabled ={InterviewhasEnd}
+               className={`rounded-full w-12 h-12 ${
+              !listening  && isBlock
+                ? "bg-red-500 hover:bg-red-600" 
+                : listening  && !isBlock
+                ? "bg-gray-600 hover:bg-gray-700" 
+                : "bg-gray-700 hover:bg-gray-800"
+              } text-white`}
+              >
               {listening  && !isBlock ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
             </Button>
-
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsVideoOff(!isVideoOff)}
+              disabled ={InterviewhasEnd}
               className={`rounded-full w-12 h-12 ${isVideoOff ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"} text-white`}
-            >
-              {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+              >
+              {(isVideoOff! && InterviewhasEnd) || isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
             </Button>
 
             <Button
               variant="ghost"
               size="sm"
               className="rounded-full w-12 h-12 bg-gray-600 hover:bg-gray-700 text-white"
-            >
+              >
               <Settings className="w-5 h-5" />
             </Button>
 
@@ -386,7 +369,7 @@ className={`rounded-full w-12 h-12 ${
               size="sm"
               onClick={endInterview}
               className="rounded-full w-12 h-12 bg-red-500 hover:bg-red-600 text-white"
-            >
+              >
               <Phone className="w-5 h-5" />
             </Button>
           </div>
@@ -415,7 +398,7 @@ className={`rounded-full w-12 h-12 ${
               <div className={`max-w-[80%] ${msg.Sender === "USER" ? "order-2" : "order-1"}`}>
                 <div
                   className={`flex items-start space-x-2 ${msg.Sender === "USER" ? "flex-row-reverse space-x-reverse" : ""}`}
-                >
+                  >
                     <Avatar className="w-8 h-8">
                       {msg.Sender === "ASSISTANT" ? (
                         <AvatarFallback className="bg-blue-600 text-white">
@@ -431,8 +414,8 @@ className={`rounded-full w-12 h-12 ${
                     <div
                       className={`rounded-lg px-3 py-2 max-w-xs ${
                         msg.Sender === "USER"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-900"
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-900"
                       }`}
                     >
                         <p className="text-sm">{msg.Content}</p>
@@ -460,14 +443,14 @@ className={`rounded-full w-12 h-12 ${
                   sendMessage()
                 }
               }}
-            />
+              />
             <div className="flex flex-col space-y-2">
               <Button
                 onClick={()=>sendMessage}
                 disabled={!message.trim()}
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700"
-              >
+                >
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -475,27 +458,7 @@ className={`rounded-full w-12 h-12 ${
         </div>
       </div>
     </div>
+                </>
   )
 }
 
-function LoadingBubble() {
-  return (
-    <div className="flex justify-start">
-      <div className="flex max-w-4xl">
-        <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center bg-blue-600 text-white">
-          <Bot className="w-4 h-4" />
-        </div>
-        <div className="px-6 py-4 rounded-2xl bg-white/80 border border-white/20 shadow-lg backdrop-blur-sm">
-          <div className="flex items-center space-x-2">
-            <div className="flex space-x-1">
-              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-              <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-            </div>
-            <span className="text-sm text-slate-600">AI is thinking...</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}

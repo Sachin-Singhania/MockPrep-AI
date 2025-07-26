@@ -166,32 +166,13 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
 }
 
 
-export async function analytics(interviewDetails: interviewDetails) {
+export async function analytics(interviewDetails: interviewDetails,questions:questionPerformance[]) {
     try {
         let start= interviewDetails.startTime;
         let end= new Date();
         let duration = (end.getTime() - start.getTime()) / 1000;
-    const questions = interviewDetails.InterviewChatHistory.filter((val) => val.ContentType == "QUESTION");
-    const validate = interviewDetails.InterviewChatHistory.reduce<number[]>((acc, val) => {
-        if (val.ContentType == "VALIDATION" && typeof val.score == "number") {
-            acc.push(val.score);
-        }
-        return acc;
-    }, [])
     const answer = interviewDetails.InterviewChatHistory.filter((val) => val.ContentType == "ANSWER");
-
-    let questionPerformance: questionPerformance[] = [];
-    for (let index = 0; index < questions.length; index++) {
-        const ques = questions[index];
-        const score = validate[index];
-        let final = {
-            question: `Q${index + 1}`,
-            score,
-            status: getStatus(score).status,
-            topic: ques.Content
-        }
-        questionPerformance.push(final);
-    }
+    let questionPerformance = questions.filter((val) => val.score != undefined);
 
     const technicalKeywords = await getTechnicalKeywords(answer);
     const InterviewScores = Object.values(technicalKeywords.InterviewScores);

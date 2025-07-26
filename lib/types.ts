@@ -44,7 +44,6 @@ interface Experience {
 type InterviewChat =
     | {
         id?: string
-        questionId : string
         Sender: "ASSISTANT";
         Content: string;
         ContentType: "VALIDATION";
@@ -55,13 +54,7 @@ type InterviewChat =
         Sender: "USER" | "ASSISTANT";
         Content: string;
         ContentType: "ANSWER" | "FORMALCHAT" | "QUESTION" | "END";
-    } |{
-        id?: string
-        questionId : string
-        Sender: "USER" ;
-        Content: string;
-        ContentType: "ANSWER";
-    };
+    } ;
     interface InterviewData extends InterviewInsights {
       date : Date
     candidateName: string;
@@ -75,7 +68,7 @@ type questionPerformance = {
     question: string;
     score?: number;
     topic: string;
-    status: string;
+    status?: string;
 }
 interface InterviewInsights {
     InterviewScores: {

@@ -4,7 +4,11 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-
+export function uuidv4() {
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+    (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+  );
+}
 export function getStatus(score: number): { status: string} {
     if (score >= 85 && score <= 100) {
         return { status: "Excellent"}
@@ -23,6 +27,62 @@ export function getTimeDiffInMins(startTime:Date , EndTime:Date) {
 const min= Math.floor((EndTime.getMinutes()-startTime.getMinutes()));
 return min;
 }
+export const transformApiData = (apiData: any, userName: string): InterviewData => {
+  const {
+    InterviewSummary,
+    GrowthAreas,
+    HRInsight,
+    CommunicationScore,
+    ProblemSolvingScore,
+    RelevanceScore,
+    TechnicalScore,
+    VocabularyScore,
+    overallScore,
+    questions,
+    KeyStrengths,
+    TechnicalKeywords,
+    Interview,
+  } = apiData;
+
+  const durationMs = Interview.endTime 
+    ? new Date(Interview.endTime).getTime() - new Date(Interview.startTime).getTime() 
+    : 0;
+  const totalMinutes = Math.floor(durationMs / 60000);
+
+  return {
+    aiNotes: InterviewSummary,
+    areasForImprovement: GrowthAreas,
+    candidateName: userName,
+    date: new Date(Interview.startTime),
+    duration: durationMs > 0 
+      ? `${String(Math.floor(totalMinutes / 60)).padStart(2, '0')}:${String(totalMinutes % 60).padStart(2, '0')}`
+      : "N/A",
+    hrInsights: {
+      culturalFit: HRInsight?.CulturalFit,
+      experienceLevel: HRInsight?.ExperienceLevel,
+      interviewReadiness: HRInsight?.InterviewReadlineScore,
+      learningPotential: HRInsight?.LearningPotential,
+      technicalCompetency: HRInsight?.TechnicalCompetency,
+    },
+    InterviewScores: {
+      communication: CommunicationScore,
+      problemSolving: ProblemSolvingScore,
+      relevance: RelevanceScore,
+      technicalKnowledge: TechnicalScore,
+      vocabulary: VocabularyScore,
+    },
+    overallScore,
+    position: Interview.Jobtitle,
+    questionPerformance: questions.map((val: any, index: number) => ({
+      question: `Q${index + 1}`,
+      score: val.score,
+      topic: val.question,
+      status: getStatus(val.score).status,
+    })),
+    strengths: KeyStrengths,
+    technicalKeywords: TechnicalKeywords,
+  };
+};
 
 //   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
 //   const audioChunksRef = useRef<Blob[]>([])

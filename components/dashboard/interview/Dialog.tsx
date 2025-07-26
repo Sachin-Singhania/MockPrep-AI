@@ -12,16 +12,19 @@ import { useChatStore } from "@/store/store"
 import { Play, Plus, Sparkles } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
+import { useSpeechRecognition } from "react-speech-recognition"
+import { toast } from "sonner"
 export default function DialogBox () {
    const [isDialogOpen, setIsDialogOpen] = useState(false)
-    const {profile,setInterview,user,interview}=useChatStore();
+    const {profile,setInterview,user}=useChatStore();
     const [formData, setFormData] = useState<JobDescription>({
     jobTitle: "",
     jobDescription: "",
     skills: "",
     experience: 0,
     difficulty: "BEGINNER",
-  })
+  });
+    const {browserSupportsSpeechRecognition} = useSpeechRecognition();
     const nav= useRouter();
   const handleInputChange = (field: keyof JobDescription, value: string) => {
     setFormData((prev) => ({
@@ -64,8 +67,19 @@ export default function DialogBox () {
   }
 
   const startInterview = async() => {
-    if(!interview || !formData.jobDescription || !formData.difficulty || !formData.skills || !formData.experience){
-      if(!user?.dashboardId) return;
+      if(!user?.dashboardId) {
+        toast("DashboardId doesn't Exsist ",{
+          richColors : true,
+        });
+        //nav to /
+        return;
+      };
+      if (!browserSupportsSpeechRecognition) {
+        toast("Sorry, Browser Doesn't Support Speech Recognition",{
+          richColors : true,
+        });
+        return;
+      }
       const resp=await createInterview(user?.dashboardId ,formData);
       if(!resp) return;
       const data:interviewDetails={
@@ -76,7 +90,7 @@ export default function DialogBox () {
         id : resp?.data.id
       }
       setInterview(data);
-    }
+
     nav.push (`/interview/session?title=${encodeURIComponent(formData.jobTitle)}`)
     return;
   }

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -43,113 +43,63 @@ import {
 import Link from "next/link"
 import { useChatStore } from "@/store/store"
 import { getInterviewDetails } from "@/lib/actions/api"
-import { getStatus } from "@/lib/utils"
-
+import { getStatus, transformApiData } from "@/lib/utils"
+import { CustomTooltip } from "@/components/ui/CustomToolTip"
 
 
 export default function InterviewAnalytics() {
   const [isLoading, setIsLoading] = useState(true);
-const { interviewId } = useParams() ;
-const { allAnalytics, user, addOrUpdateAnalytics,interview } = useChatStore();
-const [mockInterviewData, setMockInterviewData] = useState<InterviewData | null>(null);
-const [radarData, setradarData] = useState<RadarDataItem[] | null>([]);
-const nav=useRouter();
-useEffect(() => {
-  if (!interviewId || !user) {
-    nav.push("/dashboard")
-  };
+  const { interviewId } = useParams<{ interviewId: string }>();
+  const nav = useRouter();
+  
+  const { allAnalytics, user, addOrUpdateAnalytics } = useChatStore();
+  const [mockInterviewData, setMockInterviewData] = useState<InterviewData | null>(null);
 
-  const existingData = allAnalytics[interviewId as string];
-  if (existingData) {
-     let rdata:RadarDataItem[]= [
-            { subject: "Communication", score: existingData.InterviewScores.communication, fullMark: 100 },
-            { subject: "Technical", score: existingData.InterviewScores.technicalKnowledge, fullMark: 100 },
-            { subject: "Problem Solving", score: existingData.InterviewScores.problemSolving, fullMark: 100 },
-            { subject: "Vocabulary", score: existingData.InterviewScores.vocabulary, fullMark: 100 },
-            { subject: "Relevance", score: existingData.InterviewScores.relevance, fullMark: 100 },
-        ]
-        setradarData(prev=>
-         [ ...prev ?? [],
-          ...rdata,]
-        );
-    setMockInterviewData(existingData);
-    setIsLoading(false);
-    return;
-  }
+  const radarData = useMemo(() => {
+    if (!mockInterviewData?.InterviewScores) return [];
 
-  const fetchData = async () => {
-    try {
-      const res = await getInterviewDetails(interviewId as string);
-      if (res.status === 200 ) {
-        if(!res.data) return;
-        const data: InterviewData = {
-          aiNotes: res.data?.InterviewSummary,
-          areasForImprovement: res.data?.GrowthAreas,
-          candidateName: user?.name as string,
-          date: new Date(res.data.Interview.startTime),
-           duration: res.data.Interview.endTime
-              ? (() => {
-                  const durationMs =
-                    new Date(res.data.Interview.endTime).getTime() -
-                    new Date(res.data.Interview.startTime).getTime();
+    const { communication, technicalKnowledge, problemSolving, vocabulary, relevance } = mockInterviewData.InterviewScores;
+    
+    return [
+      { subject: "Communication", score: communication, fullMark: 100 },
+      { subject: "Technical", score: technicalKnowledge, fullMark: 100 },
+      { subject: "Problem Solving", score: problemSolving, fullMark: 100 },
+      { subject: "Vocabulary", score: vocabulary, fullMark: 100 },
+      { subject: "Relevance", score: relevance, fullMark: 100 },
+    ];
+  }, [mockInterviewData]);
 
-                  const totalMinutes = Math.floor(durationMs / 60000);
-                  const hours = Math.floor(totalMinutes / 60);
-                  const minutes = totalMinutes % 60;
 
-                  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-                })()
-              : "N/A Interview Analytics Failed",
-          hrInsights: {
-            culturalFit: res.data?.HRInsight?.CulturalFit as string,
-            experienceLevel: res.data?.HRInsight?.ExperienceLevel as string,
-            interviewReadiness: res.data?.HRInsight?.InterviewReadlineScore as number,
-            learningPotential: res.data?.HRInsight?.LearningPotential as string,
-            technicalCompetency: res.data?.HRInsight?.TechnicalCompetency as string,
-          },
-          InterviewScores: {
-            communication: res.data?.CommunicationScore,
-            problemSolving: res.data?.ProblemSolvingScore,
-            relevance: res.data?.RelevanceScore,
-            technicalKnowledge: res.data?.TechnicalScore,
-            vocabulary: res.data?.VocabularyScore,
-          },
-          overallScore: res.data?.overallScore,
-          position: res.data?.Interview.Jobtitle,
-          questionPerformance: res.data?.questions.map((val: any, index: number) => ({
-            question: `Q${index + 1}`,
-            score: val.score,
-            topic: val.question,
-            status: getStatus(val.score).status,
-          })),
-          strengths: res.data?.KeyStrengths,
-          technicalKeywords: res.data?.TechnicalKeywords,
-        };
-        let rdata:RadarDataItem[]= [
-            { subject: "Communication", score: data.InterviewScores.communication, fullMark: 100 },
-            { subject: "Technical", score: data.InterviewScores.technicalKnowledge, fullMark: 100 },
-            { subject: "Problem Solving", score: data.InterviewScores.problemSolving, fullMark: 100 },
-            { subject: "Vocabulary", score: data.InterviewScores.vocabulary, fullMark: 100 },
-            { subject: "Relevance", score: data.InterviewScores.relevance, fullMark: 100 },
-        ]
-        setradarData(prev=>
-         [ ...prev ?? [],
-          ...rdata,]
-        );
-
-        addOrUpdateAnalytics(interviewId as string, data);
-        setMockInterviewData(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch interview data:", err);
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (!interviewId || !user) {
+      nav.push("/dashboard");
+      return;
     }
-  };
 
-  fetchData();
-}, [interviewId, allAnalytics, user]);
+    const loadAnalyticsData = async () => {
+      setIsLoading(true);
+      const cachedData = allAnalytics[interviewId];
+      if (cachedData) {
+        setMockInterviewData(cachedData);
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const res = await getInterviewDetails(interviewId);
+        if (res.status === 200 && res.data) {
+          const transformedData = transformApiData(res.data, user.name as string);
+          setMockInterviewData(transformedData);
+          addOrUpdateAnalytics(interviewId, transformedData); 
+        }
+      } catch (err) {
+        console.error("Failed to fetch interview data:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
+    loadAnalyticsData();
+  }, [interviewId, user, allAnalytics, addOrUpdateAnalytics, nav]);
  
   const getScoreBadgeVariant = (score: number) => {
     if (score >= 80) return "default"
@@ -566,16 +516,4 @@ useEffect(() => {
     </div>
   )
 }
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload?.length) {
-    const { question, topic, score } = payload[0].payload
-    return (
-      <div className="rounded-xl border bg-white/90 p-4 shadow-xl backdrop-blur dark:border-slate-700 dark:bg-slate-800/90">
-        <p className="font-semibold text-slate-900 dark:text-slate-100">{question}</p>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">{topic}</p>
-        <p className="font-bold text-indigo-600 dark:text-indigo-400">Score: {score}%</p>
-      </div>
-    )
-  }
-  return null
-}
+

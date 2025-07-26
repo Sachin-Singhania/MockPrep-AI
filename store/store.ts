@@ -1,3 +1,4 @@
+import { getStatus } from '@/lib/utils'
 import { create } from 'zustand'
 
 type User = {
@@ -27,6 +28,7 @@ type MockPrep = {
   user: User | null;
   profile: Profile | null;
   interview: interviewDetails | null;
+  questions : questionPerformance[] | null;
   allAnalytics: Record<string, InterviewData>;
   addOrUpdateAnalytics: (id: string, data: InterviewData) => void;
   setUser: (user: User) => void;
@@ -38,12 +40,14 @@ type MockPrep = {
    updateSkills : (skills: Set<string>) => void;
    updateWorkExp : (workExp: Experience[]) => void;
    updateProjects : (projects: Project[]) => void;
+   addInterviewQuestion : (question: InterviewChat) => void;
+   updateInterviewQuestion : (questionId:string,score:number) => void;
 };
 
 export const useChatStore = create<MockPrep>((set, get) => ({
   user: null,
   profile: null,
-  interview: null,
+  interview: null,questions : [],
   allAnalytics: {},
   setUser: (user) => set({ user }),
   setProfile : (profile) => set({ profile }),
@@ -109,5 +113,31 @@ export const useChatStore = create<MockPrep>((set, get) => ({
         }
       }
     })
-  }
+  },addInterviewQuestion(question) {
+    set((state) => {
+      const add:questionPerformance = {
+        question : `Q${this.questions && this.questions?.length+1}`,
+        topic : question.Content,
+        id : question.id,
+      }
+      if (!state.interview) return state;
+      return {
+          questions : [...state.questions ?? [], add],
+      }
+      })
+  },updateInterviewQuestion(questionId, score) {
+       set ((state) => {
+         if (!state.interview) return state;
+        return{
+             questions: state.questions?.map(q =>
+      q.id === questionId
+        ? {
+            ...q,
+            score,
+            status: getStatus(score).status,
+          }
+        : q
+    )
+  }})
+  },
 }));
