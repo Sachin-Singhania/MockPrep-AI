@@ -6,20 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { ResumeExtracter } from "@/lib/actions/rag"
 import { useChatStore } from "@/store/store"
-import { FileText, Sparkles, Upload } from "lucide-react"
+import { FileText, Save, Sparkles, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import ProfileCard from "./Profile/Profile"
 import ProjectCard from "./Profile/Project"
 import SkillCard from "./Profile/Skill"
 import Exp from "./Profile/Work"
+import { toast } from "sonner"
+import { updateProfile } from "@/lib/actions/api"
 
 
 export function ProfileSection() {
   const imageInputref = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [_resume, setResume] = useState<File | null>(null)
-  const { profile, user,updateSkills,updateProfilePic,updateProjects,updateWorkExp} = useChatStore();
-  
+  const { profile, user,updateProfilePic,updateProjects,updateWorkExp,ReplaceSkill,updateSkills} = useChatStore();
   const handleButtonClickImage = () => {
     imageInputref.current?.click()
   }
@@ -27,7 +28,63 @@ export function ProfileSection() {
   const handleButtonClickFile = () => {
     fileInputRef.current?.click()
   }
-
+  const handleSkillUpdate = async(skills: string[])=>{
+            try {
+            const {success,error,message}= await updateProfile({skills});
+                if (success) {
+                    toast.success(message)
+                   ReplaceSkill(new Set(skills))
+                }
+                if (error) {
+                  console.log("HEY")
+                    toast.error(message);
+                }
+            } catch (error) {
+                toast.error("Something went wrong");
+            }
+}
+const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
+        try {
+        const {success,error,message}= await updateProfile({workExperienceIdsToRemove:idsToRemove,workExperienceToAdd:ExpToadd});
+            if (success) {
+                toast.success(message)
+                updateWorkExp(ExpToadd);
+            }
+            if (error) {
+                toast.error(message);
+            }
+        } catch (error) {
+            toast.error("Something went wrong");
+        }
+}
+    const handleProjectUpdte = async (newProjects :Project[],removedProjectIds:string[]) => {
+        try {
+        const {success,error,message}= await updateProfile({projectIdsToRemove:removedProjectIds,projectsToAdd:newProjects});
+            if (success) {
+                toast.success(message)
+                updateProjects(newProjects);
+            }
+            if (error) {
+                toast.error(message);
+            }
+        } catch (error) {
+            toast.error("Something went wrong");
+        }
+    }
+    const handleProfileUpdate = async (tagline:string,about:string) => {
+      try {
+          const {success,error,message}= await updateProfile({tagline,about});
+          if (success) {
+            toast.success(message)
+            
+          }
+          if (error) {
+            toast.error(message);
+          }
+      } catch (error) {
+         toast.error("Something went wrong");
+      }
+    }
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || file.type !== "application/pdf" || file.size > 2 * 1024 * 1024) return
@@ -47,6 +104,7 @@ export function ProfileSection() {
             updateSkills(skill);
             updateProjects(hey.Projects);
             updateWorkExp(hey.WorkExperience);
+            toast.success("Resume Info Extracted")
           }
         }
       }
@@ -123,10 +181,10 @@ export function ProfileSection() {
           </Card>
         </div>
         <div className="lg:col-span-2 space-y-6">
-          <ProfileCard about={profile?.about} email={user?.email} name={user?.name} tagline={profile?.tagline} />
-           <SkillCard skills={profile?.Skills} /> 
-          <Exp experiences={profile?.WorkExperience }/>  
-          <ProjectCard projects={ profile?.Projects}/>    
+          <ProfileCard about={profile?.about} email={user?.email} name={user?.name} tagline={profile?.tagline} save={handleProfileUpdate} />
+           <SkillCard skills={profile?.Skills} save={handleSkillUpdate} /> 
+          <Exp experiences={profile?.WorkExperience  } save={handleExpUpdate}/>  
+          <ProjectCard projects={ profile?.Projects} save={handleProjectUpdte}/>    
         </div>
       </div>
     </div>

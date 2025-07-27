@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
+
 export default function HomePage() {
   const {data:session,status}=useSession();
   const [showdashboard, setshowdashboard] = useState(false);
@@ -13,8 +14,8 @@ export default function HomePage() {
       setshowdashboard(true);
     }
   }, [status])
-  
   return (
+    
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden relative">
       {/* Abstract background shapes */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>

@@ -65,8 +65,6 @@ export async function getProfile(userId:string) {
         }
     }
 }
-
-
 export async function getInterviewDetails(interviewId:string)  {
     if (!interviewId) {
         return {
@@ -148,7 +146,7 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
             createMany :{
                 data : interviewData.questionPerformance.map((question) => ({
                     question : question.topic,
-                    score : question.score ? question.score : 0,
+                    score : question.score ? question.score : 0,id :question.id
                     })),
             }
         },
@@ -280,107 +278,82 @@ export async function register(type : "SIGNIN"|"SIGNUP",email : string, password
         
     }
 }
-
-type ProjectData = {
-    name: string;
-    description: string;
-};
-
-type WorkInfoData = {
-    company: string;
-    role: string;
-    startYear: number;
-    endYear?: number | null;
-};
-
-type UpdateProfilePayload = {
-    tagline?: string;
-    about?: string;
-    skills?: string[];
-    projectsToAdd?: ProjectData[];
-    projectIdsToRemove?: string[];
-    workExperienceToAdd?: WorkInfoData[];
-    workExperienceIdsToRemove?: string[];
-};
-
-
 export async function updateProfile(payload: UpdateProfilePayload) {
-    // 1. Authentication & Authorization
-    // Get the authenticated user's ID from your auth provider (e.g., Clerk, NextAuth)
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {
         return { success: false, error: "Authentication failed: User not found." };
     }
     const userId = data.user.userId;
-
     try {
-        // 2. Find the user's dashboard and profile
-        // We need the profileId to link new projects and work experience
         const dashboard = await prisma.dashboard.findUnique({
             where: { userId: userId },
             include: { Profile: true },
         });
 
-        if (!dashboard || !dashboard.Profile) {
+        if (!dashboard) {
             return { success: false, error: "Profile not found for the current user." };
         }
-        const profileId = dashboard.Profile.id;
+       
+        let profileId=dashboard.Profile?.id;
+        if (!dashboard.Profile || !profileId) {
+            const response = await prisma.dashboard.update({
+                where: { userId: userId },
+                data:{
+                    Profile:{
+                        create :{}
+                    }
+                }
+            });
+            profileId = response.id;
+        }
 
-        // 3. Perform all database operations within a transaction
         await prisma.$transaction(async (tx) => {
-            // A. Update simple fields on the Profile model
+            if (payload.tagline || payload.about || payload.skills) {
             await tx.profile.update({
                 where: { id: profileId },
                 data: {
                     tagline: payload.tagline,
                     about: payload.about,
-                    Skills: payload.skills, // Prisma handles the string array update
+                    Skills: payload.skills as string[], 
                 },
             });
-
-            // B. Handle Projects to Add
+        }
             if (payload.projectsToAdd && payload.projectsToAdd.length > 0) {
                 await tx.project.createMany({
                     data: payload.projectsToAdd.map(proj => ({
                         ...proj,
-                        profileId: profileId, // Link to the user's profile
+                        profileId: profileId,
                     })),
                 });
             }
 
-            // C. Handle Projects to Remove
             if (payload.projectIdsToRemove && payload.projectIdsToRemove.length > 0) {
                 await tx.project.deleteMany({
                     where: {
                         id: { in: payload.projectIdsToRemove },
-                        profileId: profileId, // Security: ensure user can only delete their own projects
+                        profileId: profileId, 
                     },
                 });
             }
 
-            // D. Handle Work Experience to Add
             if (payload.workExperienceToAdd && payload.workExperienceToAdd.length > 0) {
                 await tx.workInfo.createMany({
                     data: payload.workExperienceToAdd.map(exp => ({
                         ...exp,
-                        profileId: profileId, // Link to the user's profile
+                        profileId: profileId,
                     })),
                 });
             }
 
-            // E. Handle Work Experience to Remove
             if (payload.workExperienceIdsToRemove && payload.workExperienceIdsToRemove.length > 0) {
                 await tx.workInfo.deleteMany({
                     where: {
                         id: { in: payload.workExperienceIdsToRemove },
-                        profileId: profileId, // Security: ensure user can only delete their own experience
+                        profileId: profileId, 
                     },
                 });
             }
         });
-
-        // 4. Revalidate the path to show updated data immediately
-        // This clears the server-side cache for the profile page.
 
         return { success: true, message: "Profile updated successfully!" };
 
@@ -389,7 +362,6 @@ export async function updateProfile(payload: UpdateProfilePayload) {
         return { success: false, error: "An unexpected error occurred while updating the profile." };
     }
 }
-
 async function startInterviewAndCreateSession(interviewId: string) {
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {

@@ -1,26 +1,13 @@
 "use client"
 
-import { useEffect } from "react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { BarChart3 } from "lucide-react"
 
 interface AnalyticsGenerationDialogProps {
   isOpen: boolean
-  onComplete?: () => void
 }
 
-export function AnalyticsGenerationDialog({ isOpen, onComplete }: AnalyticsGenerationDialogProps) {
-  useEffect(() => {
-    if (!isOpen) return
-
-    // Simple timeout to simulate API call
-    const timer = setTimeout(() => {
-      onComplete?.()
-    }, 5000) // 5 seconds loading time
-
-    return () => clearTimeout(timer)
-  }, [isOpen, onComplete])
-
+export function AnalyticsGenerationDialog({ isOpen }: AnalyticsGenerationDialogProps) {
   return (
     <Dialog open={isOpen}>
       <DialogContent className="sm:max-w-md border-0 bg-white/95 backdrop-blur-xl shadow-2xl">

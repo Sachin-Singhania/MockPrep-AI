@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import DialogBox from "./interview/Dialog"
 import InterviewStats from "./interview/Stats"
+import { toast } from "sonner"
 
 
 export function InterviewSection() {
@@ -53,6 +54,7 @@ export function InterviewSection() {
 
   useEffect(() => {
     if(!profile){
+      toast.error("Profile data not found")
       nav.push( "/");
     };
     let data: pastInterviews[] = [];

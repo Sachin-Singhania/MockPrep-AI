@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "MockPrep AI - Master Your Next Interview",
   description: "AI-powered mock interview platform with instant feedback and personalized questions.",
 }
+import { Toaster } from "sonner"
 
 export default function RootLayout({
   children,
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="en">
       <body>  
       <AuthProvider >
+              <Toaster position="top-right" />
         {children}
       </AuthProvider>
       </body>

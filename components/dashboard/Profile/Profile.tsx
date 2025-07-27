@@ -8,26 +8,22 @@ import { useMemo, useState } from "react"
 
 
 
- export default function ProfileCard({ name, email, tagline, about }: { name: string | undefined | null; email: string | undefined; tagline: string | undefined; about: string | undefined} ) {
-    const originalName = name?.trim() ?? ""
+ export default function ProfileCard({ name, email, tagline, about,save }: { name: string | undefined | null; email: string | undefined; tagline: string | undefined; about: string | undefined , save(tagline:string,about:string):void} ) {
     const originalTagline = tagline?.trim() ?? ""
     const originalAbout = about?.trim() ?? ""
-    const [localName, setName] = useState(originalName)
     const [localTagline, setTagline] = useState(originalTagline)
     const [localAbout, setAbout] = useState(originalAbout)
     const hasChanges = useMemo(() => {
         return (
-            localName.trim() !== originalName ||
             localTagline.trim() !== originalTagline ||
             localAbout.trim() !== originalAbout
         )
-    }, [localName, localTagline, localAbout, originalName, originalTagline, originalAbout])
+    }, [ localTagline, localAbout, originalTagline, originalAbout])
     const saveChanges = () => {
         const changes: Record<string, string> = {}
-        if (localName !== originalName) changes.name = localName
         if (localTagline !== originalTagline) changes.tagline = localTagline
         if (localAbout !== originalAbout) changes.about = localAbout
-
+        save(changes.tagline, changes.about);
         if (Object.keys(changes).length === 0) {
             console.log("No changes made.")
         } else {
@@ -53,10 +49,7 @@ import { useMemo, useState } from "react"
                     <div className="grid md:grid-cols-2 gap-4">
                         <div>
                             <Label htmlFor="name">Name</Label>
-                            <Input id="name" value={localName as string | undefined} onChange={(e) => {
-                                setName(e.target.value)
-
-                            } } placeholder="John Doe" />
+                            <Input id="name" value={name as string | undefined} disabled placeholder="John Doe" />
                         </div>
                         <div>
                             <Label htmlFor="email">Email</Label>

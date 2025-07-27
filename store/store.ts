@@ -42,6 +42,7 @@ type MockPrep = {
    updateProjects : (projects: Project[]) => void;
    addInterviewQuestion : (question: InterviewChat) => void;
    updateInterviewQuestion : (questionId:string,score:number) => void;
+   ReplaceSkill : (skill: Set<string>) => void;
 };
 
 export const useChatStore = create<MockPrep>((set, get) => ({
@@ -91,7 +92,17 @@ export const useChatStore = create<MockPrep>((set, get) => ({
         }
       }
     })
-  },
+  },ReplaceSkill (skill: Set<string>) {
+      set((state) => {
+        if (!state.profile) return state;
+        return {
+          profile: {
+            ...state.profile,
+            Skills :new Set(skill)
+          }
+        }
+      })
+  },  
   updateWorkExp(experience: Experience[]) {
     set((state) => {
       if (!state.profile) return state;
@@ -116,7 +127,7 @@ export const useChatStore = create<MockPrep>((set, get) => ({
   },addInterviewQuestion(question) {
     set((state) => {
       const add:questionPerformance = {
-        question : `Q${this.questions && this.questions?.length+1}`,
+        question : `Q${state.questions && state.questions.length>0 ? state.questions.length+1 : 1}`,
         topic : question.Content,
         id : question.id,
       }

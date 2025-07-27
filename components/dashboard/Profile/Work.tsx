@@ -7,35 +7,34 @@ import { DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog"
 import { Briefcase, Plus, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { usePrevious } from "./Hook"
+import { toast } from "sonner"
+import { updateProfile } from "@/lib/actions/api"
 
-export default function Exp({ experiences }: { experiences: Experience[] | undefined }) {
-    const originalExperience = useMemo(() => experiences ?? [], [experiences])
+export default function Exp({ experiences,save }: { experiences: Experience[] | undefined ,save(addExp:Experience[],removedExpId:string[]):void}) {
+    const originalExperiences = useMemo(() => experiences ?? [], [experiences])
     const [expRemovedIds, setexpRemovedIds] = useState<string[]>([])
     const [newExp, setnewExp] = useState<Experience[]>([])
     const setExperiences = (experiences: Experience) => {
         setnewExp((prevExp) => [...prevExp ?? [], experiences])
     }
-//   const prevExperiences = usePrevious(originalExperiences);
-//     // This effect detects changes from the AI resume extractor
-//     useEffect(() => {
-//         if (prevExperiences && prevExperiences !== originalExperiences) {
-//             // Find experiences that are in the new prop but weren't in the old one
-//             const newItemsFromAI = originalExperiences.filter(exp => 
-//                 !prevExperiences.some(prevExp => prevExp.id === exp.id)
-//             );
+  const prevExperiences = usePrevious(originalExperiences);
+    useEffect(() => {
+        if (prevExperiences && prevExperiences !== originalExperiences) {
+            const newItemsFromAI = originalExperiences.filter(exp => 
+                !prevExperiences.some(prevExp => prevExp.company.trim() === exp.company.trim())
+            );
 
-//             // If new experiences were found, add them to our "added" change list
-//             if (newItemsFromAI.length > 0) {
-//                 setAddedExperiences(currentAdded => [...currentAdded, ...newItemsFromAI]);
-//             }
-//         }
-//     }, [originalExperiences, prevExperiences]);
+            if (newItemsFromAI.length > 0) {
+                setnewExp(currentAdded => [...currentAdded, ...newItemsFromAI]);
+            }
+        }
+    }, [originalExperiences, prevExperiences]);
     const removeExp = (exp: Experience) => {
-        if (exp.id && originalExperience) {
+      
+        if (exp.id) {
             setexpRemovedIds((prev) => [...prev ?? [], exp.id as string])
-
         } else {
             setnewExp((prevExp) => prevExp?.filter((e) => e !== exp))
         }
@@ -44,14 +43,19 @@ export default function Exp({ experiences }: { experiences: Experience[] | undef
         return expRemovedIds?.length > 0 || newExp?.length > 0
     }, [expRemovedIds, newExp])
 
-    const onsave = () => {
+    const onSave = async () => {
+        try {
+            save( newExp, expRemovedIds)
+        } catch (error) {
+            toast.error("Something went wrong");
+        }
     }
     const displayExperience = useMemo(() => {
-        const filteredOriginal = originalExperience.filter(
+        const filteredOriginal = originalExperiences.filter(
             (exp) => !expRemovedIds.includes(exp.id ?? "")
-        )
+        ).filter((exp)=>  !newExp.some(newExp => newExp.id === exp.id))
         return [...filteredOriginal, ...newExp]
-    }, [originalExperience, expRemovedIds, newExp])
+    }, [originalExperiences, expRemovedIds, newExp])
 
     return (
         <>
@@ -62,7 +66,7 @@ export default function Exp({ experiences }: { experiences: Experience[] | undef
                         {hasChanges && (
                             <button
                                 className="text-sm px-3 py-1 bg-black text-white rounded-md hover:bg-gray-500 transition disabled:opacity-50"
-                                onClick={onsave}
+                                onClick={onSave}
                             >
                                 Save
                             </button>)}

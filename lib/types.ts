@@ -125,3 +125,24 @@ interface getProfile{
   score: number;
   fullMark: number;
 };
+type ProjectData = {
+    name: string;
+    description: string;
+};
+
+type WorkInfoData = {
+    company: string;
+    role: string;
+    startYear: number;
+    endYear?: number | null;
+};
+
+type UpdateProfilePayload = {
+    tagline?: string;
+    about?: string;
+    skills?: string[];
+    projectsToAdd?: ProjectData[];
+    projectIdsToRemove?: string[];
+    workExperienceToAdd?: WorkInfoData[];
+    workExperienceIdsToRemove?: string[];
+};

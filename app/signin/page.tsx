@@ -9,6 +9,7 @@ import { signIn } from "next-auth/react"
 import { register } from "@/lib/actions/api"
 import { useChatStore } from "@/store/store"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -32,7 +33,10 @@ export default function SignInPage() {
     if (email && password ) {
       let response;
       if(type === "SIGNUP" ){
-        if (name.trim()=="") return; 
+        if (name.trim()=="") {
+          toast.error("Please enter your name")
+          return;
+        }; 
         response=await register(type, email, password, name);
       }
       if (type === "SIGNIN"){
@@ -40,6 +44,7 @@ export default function SignInPage() {
       }
       if(response){
         if (response.data){
+          toast.success("Welcome "+response.data.name ? response.data.name : response.data.email);
           const userval= {
               userId :response.data.id,
               dashboardId :response.data.dashboards?.id as string,

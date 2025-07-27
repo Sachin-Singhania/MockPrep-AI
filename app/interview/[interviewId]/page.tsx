@@ -1,50 +1,51 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CustomTooltip } from "@/components/ui/CustomToolTip"
+import { Progress } from "@/components/ui/progress"
+import { getInterviewDetails } from "@/lib/actions/api"
+import { transformApiData } from "@/lib/utils"
+import { useChatStore } from "@/store/store"
 import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Cell,
-} from "recharts"
-import {
-  ArrowLeft,
-  Download,
-  Share2,
-  TrendingUp,
-  MessageSquare,
-  Code,
-  Lightbulb,
-  Target,
-  Star,
   AlertCircle,
+  ArrowLeft,
   Award,
   Brain,
-  Users,
-  Clock,
   CheckCircle,
+  Clock,
+  Code,
+  Download,
+  Lightbulb,
+  MessageSquare,
+  Share2,
+  Star,
+  Target,
+  TrendingUp,
+  Users,
   XCircle,
   Zap,
 } from "lucide-react"
 import Link from "next/link"
-import { useChatStore } from "@/store/store"
-import { getInterviewDetails } from "@/lib/actions/api"
-import { getStatus, transformApiData } from "@/lib/utils"
-import { CustomTooltip } from "@/components/ui/CustomToolTip"
+import { useParams, useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { toast } from "sonner"
 
 
 export default function InterviewAnalytics() {
@@ -72,6 +73,7 @@ export default function InterviewAnalytics() {
 
   useEffect(() => {
     if (!interviewId || !user) {
+      toast.error("User info not found");
       nav.push("/dashboard");
       return;
     }

@@ -5,16 +5,20 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { usePrevious } from "./Hook"
+import { updateProfile } from "@/lib/actions/api"
+import { toast } from "sonner"
 
 
 
-  export default function SkillCard({ skills }: { skills: Set<string> | undefined} ) {
+  export default function SkillCard({ skills ,save}: { skills: Set<string> | undefined,save(skills:string[]):void} ) {
     const originalSkills = useMemo(() => skills ?? new Set<string>(), [skills])
 
     const [skillInput, setSkillInput] = useState("")
     const [newSkills, setNewSkills] = useState<Set<string>>(new Set())
     const [removedSkills, setRemovedSkills] = useState<Set<string>>(new Set())
+    const [updated , setUpdated] = useState(false);
     const addSkill = (skillStr: string) => {
         const trimmed = skillStr.trim()
         const isInOriginal = originalSkills.has(trimmed) && !removedSkills.has(trimmed)
@@ -27,26 +31,22 @@ import { useMemo, useState } from "react"
             setSkillInput("")
         }
     }
-//      const prevSkills = usePrevious(originalSkills);
+     const prevSkills = usePrevious(originalSkills);
+     useEffect(() => {
 
-//   // This effect now intelligently handles prop changes from the AI
-//   useEffect(() => {
-//     // Ensure prevSkills exists and has actually changed to avoid running on mount
-//     if (prevSkills && prevSkills !== originalSkills) {
-//       const newItemsFromAI = new Set<string>();
-//       // Find skills that are in the new prop but weren't in the old one
-//       for (const skill of originalSkills) {
-//         if (!prevSkills.has(skill)) {
-//           newItemsFromAI.add(skill);
-//         }
-//       }
+    if (prevSkills && prevSkills !== originalSkills) {
+      const newItemsFromAI = new Set<string>();
+      for (const skill of originalSkills) {
+        if (!prevSkills.has(skill)) {
+          newItemsFromAI.add(skill);    
+        }
+      }
 
-//       // If new skills were found, add them to our "added" list
-//       if (newItemsFromAI.size > 0) {
-//         setAddedSkills(currentAdded => new Set([...currentAdded, ...newItemsFromAI]));
-//       }
-//     }
-//   }, [originalSkills, prevSkills]);
+      if (newItemsFromAI.size > 0) {
+        setNewSkills(currentAdded => new Set([...currentAdded, ...newItemsFromAI]));
+      }
+    }
+  }, [originalSkills, prevSkills]);
     const removeSkill = (skill: string) => {
         if (newSkills.has(skill)) {
             const updated = new Set(newSkills)
@@ -61,12 +61,16 @@ import { useMemo, useState } from "react"
     const hasChanges = newSkills.size > 0 || removedSkills.size > 0
     const displaySkills = useMemo(() => {
         const filteredOriginal = Array.from(originalSkills).filter(
-            (s) => !removedSkills.has(s)
-        )
+            (s) => !removedSkills?.has(s)
+        ).filter ((s) => !newSkills?.has(s))
         return [...filteredOriginal, ...Array.from(newSkills)]
     }, [originalSkills, newSkills, removedSkills])
-    const onSave = async () => {
-        return
+   const onSave = async () => {
+        try {
+          save(displaySkills);
+        } catch (error) {
+            toast.error("Something went wrong");
+        }
     }
     return (
         <>

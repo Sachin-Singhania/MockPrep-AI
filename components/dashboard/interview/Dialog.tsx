@@ -71,7 +71,6 @@ export default function DialogBox () {
         toast("DashboardId doesn't Exsist ",{
           richColors : true,
         });
-        //nav to /
         return;
       };
       if (!browserSupportsSpeechRecognition) {
@@ -90,7 +89,7 @@ export default function DialogBox () {
         id : resp?.data?.id
       }
       setInterview(data);
-
+      toast.success("Interview is going to start")
     nav.push (`/interview/session?title=${encodeURIComponent(formData.jobTitle)}`)
     return;
   }

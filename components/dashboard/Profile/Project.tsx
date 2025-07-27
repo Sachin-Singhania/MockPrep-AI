@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog"
 import { Plus, X } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { usePrevious } from "./Hook"
+import { updateProfile } from "@/lib/actions/api"
+import { toast } from "sonner"
 
 
 
-
- export default function ProjectCard({ projects }: { projects: Project[] | undefined} ) {
+ export default function ProjectCard({ projects,save }: { projects: Project[] | undefined,save(addProjects:Project[],removedProjectIds:string[]):void} ) {
     const originalProjects = useMemo(() => projects ?? [], [projects])
     const [newProjects, setNewProjects] = useState<Project[]>([])
     const [removedProjectIds, setRemovedProjectIds] = useState<string[]>([])
@@ -20,18 +21,18 @@ import { usePrevious } from "./Hook"
     const handleAddProject = (proj: Project) => {
         setNewProjects((prev) => [...prev, proj])
     }
-        // const prevProjects = usePrevious(originalProjects);
-  // useEffect(() => {
-  //       if (prevProjects && prevProjects !== originalProjects) {
-  //           const newItemsFromAI = originalProjects.filter(proj => 
-  //               !prevProjects.some(prevProj => prevProj.id === proj.id)
-  //           );
+        const prevProjects = usePrevious(originalProjects);
+  useEffect(() => {
+        if (prevProjects && prevProjects !== originalProjects) {
+            const newItemsFromAI = originalProjects.filter(proj => 
+                !prevProjects.some(prevProj => prevProj.id === proj.id)
+            );
 
-  //           if (newItemsFromAI.length > 0) {
-  //               setAddedProjects(currentAdded => [...currentAdded, ...newItemsFromAI]);
-  //           }
-  //       }
-  //   }, [originalProjects, prevProjects]);
+            if (newItemsFromAI.length > 0) {
+                setNewProjects(currentAdded => [...currentAdded, ...newItemsFromAI]);
+            }
+        }
+    }, [originalProjects, prevProjects]);
     const removeProject = (proj: Project) => {
         if (proj.id) {
             setRemovedProjectIds((prev) => [...prev, proj.id!])
@@ -39,22 +40,27 @@ import { usePrevious } from "./Hook"
             setNewProjects((prev) => prev.filter((p) => p !== proj))
         }
     }
-
+    
     const hasChanges = useMemo(() => {
-        return newProjects.length > 0 || removedProjectIds.length > 0
+      return newProjects.length > 0 || removedProjectIds.length > 0
     }, [newProjects, removedProjectIds])
+  
 
-    const onSave = () => {
-        console.log("New projects:", newProjects)
-        console.log("Removed project IDs:", removedProjectIds)
+      const onSave = async () => {
+        try {
+          save(newProjects,removedProjectIds)
+        } catch (error) {
+            toast.error("Something went wrong");
+        }
     }
 
     const displayProjects = useMemo(() => {
         const filteredOriginal = originalProjects.filter(
             (proj) => !removedProjectIds.includes(proj.id ?? "")
-        )
+        ).filter ((proj) => !newProjects.some((p) => p.id === proj.id))
         return [...filteredOriginal, ...newProjects]
     }, [originalProjects, newProjects, removedProjectIds])
+    
     return (
         <Card>
             <CardHeader>

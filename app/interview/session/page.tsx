@@ -13,6 +13,7 @@ import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognitio
 import { LoadingBubble } from "@/components/ui/LoadingBubble"
 import { uuidv4 } from "@/lib/utils"
 import { toast } from "sonner"
+import { AnalyticsGenerationDialog } from "@/components/ui/AnalyticsGen"
 
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
@@ -178,11 +179,12 @@ useEffect(() => {
         } as const;
 
         const ContentType = nextTypeMap[lastType as keyof typeof nextTypeMap];
+        console.log(ContentType)
         const newMessage: InterviewChat = {
           id : uuidv4(),
           Sender: "USER",
           Content: finalMessage,
-          ContentType: ContentType ,
+          ContentType: ContentType ? ContentType : "FORMALCHAT" ,
         };
         addInterviewMessage(newMessage);
 
@@ -220,10 +222,16 @@ useEffect(() => {
         console.error("API Error:", errorData.error);
 
         if (res.status === 400) {
+            setloading(false);
+            addInterviewMessage(AiResponse);
             return;
         }
         
         if (res.status === 401 || res.status === 403) {
+          
+            if (AiResponse.ContentType === "END") {
+              endInterview();
+            }
             router.push('/login');
             return;
         }
@@ -231,12 +239,29 @@ useEffect(() => {
           toast("You Are rate limitted",{
             richColors : true
           })
+            setloading(false);
+           addInterviewMessage(AiResponse);
+           
+            if (AiResponse.ContentType === "END") {
+              endInterview();
+            }
           return;
         }
+          setloading(false);
+        addInterviewMessage(AiResponse);
         return;
     }
 
-if (!res.body) throw new Error("No response body");
+if (!res.body) {
+  toast.error("Error while generating audio")
+    setloading(false);
+  addInterviewMessage(AiResponse);
+  
+  if (AiResponse.ContentType === "END") {
+    endInterview();
+  }
+  return;
+};
 
 const mediaSource = new MediaSource();
 const audioUrl = URL.createObjectURL(mediaSource);
@@ -304,15 +329,15 @@ try {
     } catch (error) {
       console.log (error);
       nav.push(`/dashboard`);
+    }finally{
+      setInterviewhasEnd(false);
     }
   }
   
   return (
     <>
       {InterviewhasEnd  &&  (
-        <div>
-        Interview has ended
-      </div>
+        <AnalyticsGenerationDialog isOpen={InterviewhasEnd}/>
     )}
     <div className="min-h-screen bg-gray-900 flex">
       {/* Video Area */}
