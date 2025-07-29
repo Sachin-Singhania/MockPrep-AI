@@ -164,6 +164,12 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
 }
 export async function createInterview(dashboardId : string, interviewData: JobDescription) {
     try {
+    const data = await getServerSession(authOptions);
+        if (!data?.user?.userId) {
+            return { success: false, error: "Authentication failed: User not found." };
+        }
+        const userId = data.user.userId;
+       await checkLimit(userId);
         const id = uuidv4();
         const {success}=await startInterviewAndCreateSession(id);
        if (!success){
@@ -205,6 +211,13 @@ export async function createInterview(dashboardId : string, interviewData: JobDe
             data : response,
         };
     } catch (error) {
+        if (error instanceof LimitExceededError){
+            return {
+                status: false,
+                message: "Limit exceeded",
+                data : null,
+            }
+        }
         return {
             status: false,
             message: "Failed to create interview",
@@ -374,20 +387,17 @@ async function startInterviewAndCreateSession(interviewId: string) {
 
     try {
 
-        // 2. Generate a secure, random token
         const sessionToken = uuidv4().toString();
 
-        // 3. Prepare the session data to store
         const sessionData = {
             userId: userId,
             interviewId: interviewId,
         };
 
-        // 4. Store the session in Redis with a 25-minute expiry (1500 seconds)
         await redis.set(
-            `tts-session:${sessionToken}`, // Prefix for clarity
+            `tts-session:${sessionToken}`, 
             JSON.stringify(sessionData),
-            { ex: 23 * 60 } // ex = expire in seconds
+            { ex: 23 * 60 } 
         );
          cookies().set('tts-session-token', sessionToken, {
             httpOnly: true, // Prevents client-side JS access
@@ -401,4 +411,46 @@ async function startInterviewAndCreateSession(interviewId: string) {
         console.error("Failed to start interview session:", error);
         return { success: false};
     }
+}
+class LimitExceededError extends Error {
+  constructor(message: string = "User limit exceeded") {
+    super(message);
+    this.name = "LimitExceededError";
+  }
+}
+async function checkLimit(userId: string) {
+  try {
+    const user= await prisma.user.findUnique({
+      where: { 
+        id : userId
+       },
+      select:{
+        limit: true,
+        id: true,
+      }
+    });
+    if (!user) {
+    throw new Error("User not found in database");
+  }
+  if (user.limit && user.limit <= 0) {
+        throw new LimitExceededError();
+  }
+    await prisma.user.update({
+      where: {         id : userId
+ },
+      data: {
+        limit: {
+          decrement: 1,
+        },
+      },
+    });
+    console.log("User limit decremented successfully");
+  } catch (error) {
+    console.error("Error checking user limit:", error);
+    if (error instanceof LimitExceededError) {
+      throw error;
+    } else {
+      throw new Error("Error checking user limit: " + error);
+    }
+  }
 }
