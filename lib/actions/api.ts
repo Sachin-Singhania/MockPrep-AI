@@ -59,8 +59,9 @@ export async function getProfile(userId:string) {
             data : resp
         }
     } catch (error) {
+        console.log(error);
         return {
-            message : "Error Occured ",
+            message : "Error Occured",
             data : null
         }
     }

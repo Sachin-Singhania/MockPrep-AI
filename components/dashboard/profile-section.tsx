@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { ResumeExtracter } from "@/lib/actions/rag"
 import { useChatStore } from "@/store/store"
-import { FileText, Save, Sparkles, Upload } from "lucide-react"
+import { FileText, Sparkles, Upload } from "lucide-react"
 import { useRef, useState } from "react"
 import ProfileCard from "./Profile/Profile"
 import ProjectCard from "./Profile/Project"

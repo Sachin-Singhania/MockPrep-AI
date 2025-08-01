@@ -40,7 +40,10 @@ export function DashboardContent({toggle}:{toggle(status:boolean):void}) {
       return;
     }
     async function profile(userId:string) {
-      const {data}= await getProfile(userId);
+      const {data,message}= await getProfile(userId);
+      if(message){
+        toast.error(message);
+      }
       if(!data) return;
       const profile ={
         profileId : data.Profile?.id,

@@ -88,7 +88,7 @@ export const useChatStore = create<MockPrep>((set, get) => ({
       return {
         profile: {
           ...state.profile,
-          Skills: new Set([...state.profile.Skills, ...skills])
+          Skills: new Set([...state.profile.Skills ?? [], ...skills])
         }
       }
     })
@@ -109,7 +109,7 @@ export const useChatStore = create<MockPrep>((set, get) => ({
       return {
         profile: {
           ...state.profile,
-          WorkExperience: [...state.profile.WorkExperience, ...experience]
+          WorkExperience: [...state.profile.WorkExperience ?? [], ...experience]
         }
       }
     })
@@ -120,7 +120,7 @@ export const useChatStore = create<MockPrep>((set, get) => ({
       return {
         profile: {
           ...state.profile,
-          Projects: [...state.profile.Projects, ...projects]
+          Projects: [...state.profile.Projects ?? [], ...projects]
         }
       }
     })
