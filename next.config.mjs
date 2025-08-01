@@ -9,7 +9,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   }, reactStrictMode: false,experimental: {
-serverComponentsExternalPackages: ['pdf-parse','@prisma/client', 'prisma'],
+serverComponentsExternalPackages: ['pdf-parse'],
 },
 };
 

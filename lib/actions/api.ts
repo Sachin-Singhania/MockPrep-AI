@@ -1,12 +1,12 @@
 "use server"
 import { getServerSession } from "next-auth";
-import { Level, QuestionType, Sender } from "../generated/prisma";
 import { prisma } from "../prisma";
 import bcrypt from "bcryptjs";
 import { authOptions } from "../auth";
 import { uuidv4 } from "../utils";
 import { redis } from "../redis";
 import { cookies } from "next/headers";
+import { Level, QuestionType } from "@prisma/client";
 export async function getProfile(userId:string) {
     try {
         const resp=await prisma.dashboard.findFirst({
