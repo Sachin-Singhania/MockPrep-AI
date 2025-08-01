@@ -248,7 +248,7 @@ export function DashboardContent({toggle}:{toggle(status:boolean):void}) {
 
 
         {/* Recent Activity - Blue Area */}
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Your latest interview sessions and achievements</CardDescription>
@@ -319,7 +319,7 @@ export function DashboardContent({toggle}:{toggle(status:boolean):void}) {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   )
