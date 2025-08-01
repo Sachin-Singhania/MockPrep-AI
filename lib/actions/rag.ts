@@ -166,10 +166,9 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
 }
 
 
-export async function analytics(interviewDetails: interviewDetails,questions:questionPerformance[]) {
+export async function analytics(interviewDetails: interviewDetails,questions:questionPerformance[],end:Date) {
     try {
         let start= interviewDetails.startTime;
-        let end= new Date();
         let duration = (end.getTime() - start.getTime()) / 1000;
     const answer = interviewDetails.InterviewChatHistory.filter((val) => val.ContentType == "ANSWER");
     let questionPerformance = questions.filter((val) => val.score != undefined);
@@ -188,7 +187,8 @@ export async function analytics(interviewDetails: interviewDetails,questions:que
         ...technicalKeywords,
     };
     await setInterviewDetails(interviewData,interviewDetails,end)
-    return interviewData;} catch (error) {
+    return interviewData;
+} catch (error) {
          console.error(error);
     }
 }

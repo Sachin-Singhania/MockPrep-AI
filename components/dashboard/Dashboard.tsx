@@ -3,10 +3,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getProfile } from "@/lib/actions/api"
 import { useChatStore } from "@/store/store"
-import { Briefcase, Calendar, Clock, Edit, FileText, Mail, Star, User } from "lucide-react"
+import { Calendar, Clock, Edit, Mail, Star } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -20,7 +20,10 @@ export function DashboardContent({toggle}:{toggle(status:boolean):void}) {
   if (status === "loading") return;
   if (status == "unauthenticated" || !session?.user?.userId || !session.user.dashboardId) {
     if (user?.userId){
-      profile (user.userId);
+      if(profile?.profileId){
+         return;
+      }
+      addprofile (user.userId);
       return;
     }
     toast.error("User Not Logged In");
@@ -36,15 +39,19 @@ export function DashboardContent({toggle}:{toggle(status:boolean):void}) {
           profilePic :session.user.image as string
       }
       setUser(userval);
-      profile (session.user.userId);
+      if(profile?.profileId){
+         return;
+      }
+      addprofile (session.user.userId);
       return;
     }
-    async function profile(userId:string) {
+    async function addprofile(userId:string) {
       const {data,message}= await getProfile(userId);
-      if(message){
+      if(!data) {
         toast.error(message);
-      }
-      if(!data) return;
+        return;
+      };
+      toast.success(message);
       const profile ={
         profileId : data.Profile?.id,
         about : data.Profile?.about ? data.Profile?.about : undefined,

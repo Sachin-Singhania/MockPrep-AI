@@ -161,6 +161,10 @@ export async function setInterviewDetails(interviewData:InterviewData,interviewD
     }
 }catch (e){
          console.error (e);
+         return {
+            message: "Error updating interview details",
+            status: 500,
+         }
     }
 }
 export async function createInterview(dashboardId : string, interviewData: JobDescription) {

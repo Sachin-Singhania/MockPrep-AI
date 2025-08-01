@@ -21,13 +21,13 @@ export default function InterviewSessionPage() {
   const nav = useRouter();
   const [sent, setsent] = useState(false)
   const [InterviewhasEnd,setInterviewhasEnd] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(600)
+  const [timeLeft, setTimeLeft] = useState(23*60)
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [message, setMessage] = useState("")
   const [isBlock, setisBlock] = useState(false)
   const router = useRouter();
   const [loading, setloading] = useState(false);
-  const {interview,addOrUpdateAnalytics,addInterviewMessage,questions,addInterviewQuestion,updateInterviewQuestion}=useChatStore();
+  const {interview,addOrUpdateAnalytics,addInterviewMessage,questions,addInterviewQuestion,updateInterviewQuestion,SetInterviewNull,updateProfileInterview}=useChatStore();
   const [fromTranscription, setFromTranscription] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -42,6 +42,8 @@ useEffect(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
+          setInterviewhasEnd(true)
+          endInterview();
           return 0;
         }
         return prev - 1
@@ -60,6 +62,7 @@ useEffect(() => {
   useEffect(() => {
     if(sent) return;
     if (!interview) {
+      toast.error("No interview data provided")
       router.replace("/dashboard");
     } else {
       const runFirstMessage = () => {
@@ -322,9 +325,25 @@ try {
     if(!interview) return;
     try {
       setInterviewhasEnd(true);
-     const data= await analytics(interview,questions ?? []);
-     if (!data) return;
-      addOrUpdateAnalytics(interview.id as string,data);
+        let end= new Date();
+        const data= await analytics(interview,questions ?? [],end);
+        if (!data){
+          console.error ("Analytics error");
+          toast.error("There was an error while generating analytics");
+          SetInterviewNull();
+          nav.push("/dashboard");
+          return;
+        }
+        addOrUpdateAnalytics(interview.id as string,data);
+        let d = {
+          Analytics : {overallScore:data.overallScore},
+          endTime :end,
+          id : interview.id as string,
+          Jobtitle : interview.JobDescription.jobTitle,
+          startTime : interview.startTime
+        }
+        SetInterviewNull();
+        updateProfileInterview(d);
       nav.push(`/interview/${interview.id}`);
     } catch (error) {
       console.log (error);

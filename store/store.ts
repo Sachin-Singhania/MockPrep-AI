@@ -12,18 +12,17 @@ export interface Profile extends Resume {
   profileId: string | undefined
   about: string | undefined
   tagline: string | undefined
-  interview: {
+  interview: ProfileInterview[]| null
+}
+interface ProfileInterview {
     id: string;
     startTime: Date;
     endTime: Date | null;
     Jobtitle: string
     Analytics: {
-      id: string;
       overallScore: number;
     } | null;
-  }[] | null
 }
-
 type MockPrep = {
   user: User | null;
   profile: Profile | null;
@@ -43,6 +42,8 @@ type MockPrep = {
    addInterviewQuestion : (question: InterviewChat) => void;
    updateInterviewQuestion : (questionId:string,score:number) => void;
    ReplaceSkill : (skill: Set<string>) => void;
+   SetInterviewNull: () => void;
+   updateProfileInterview: (interview: ProfileInterview) => void;
 };
 
 export const useChatStore = create<MockPrep>((set, get) => ({
@@ -150,5 +151,16 @@ export const useChatStore = create<MockPrep>((set, get) => ({
         : q
     )
   }})
+  },  SetInterviewNull: () => set({interview: null,questions:[] }),
+  updateProfileInterview(interview) {
+        set((state) => {
+      if (!state.profile) return state;
+      return {
+        profile: {
+          ...state.profile,
+          interview : [...state.profile.interview ?? [], interview]
+        }
+      }
+    })
   },
 }));
