@@ -8,7 +8,9 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
-  }, reactStrictMode: false,
+  }, reactStrictMode: false,experimental: {
+serverComponentsExternalPackages: ['pdf-parse'],
+},
 };
 
 export default nextConfig;
