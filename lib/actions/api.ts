@@ -7,6 +7,12 @@ import { uuidv4 } from "../utils";
 import { redis } from "../redis";
 import { cookies } from "next/headers";
 import { Level, QuestionType } from "@prisma/client";
+class LimitExceededError extends Error {
+  constructor(message: string = "User limit exceeded") {
+    super(message);
+    this.name = "LimitExceededError";
+  }
+}
 export async function getProfile(userId:string) {
     try {
         const resp=await prisma.dashboard.findFirst({
@@ -405,23 +411,16 @@ async function startInterviewAndCreateSession(interviewId: string) {
             { ex: 23 * 60 } 
         );
          cookies().set('tts-session-token', sessionToken, {
-            httpOnly: true, // Prevents client-side JS access
-            secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-            path: '/', // Available for all paths
-            maxAge: 23 * 60, // Cookie expiry in seconds, matching Redis TTL
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production', 
+            path: '/',
+            maxAge: 23 * 60, 
         });
-
         return { success: true };
     } catch (error) {
         console.error("Failed to start interview session:", error);
         return { success: false};
     }
-}
-class LimitExceededError extends Error {
-  constructor(message: string = "User limit exceeded") {
-    super(message);
-    this.name = "LimitExceededError";
-  }
 }
 async function checkLimit(userId: string) {
   try {

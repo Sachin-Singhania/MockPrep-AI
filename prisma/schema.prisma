@@ -35,6 +35,8 @@ model Dashboard{
   updatedAt DateTime @updatedAt
   userId    String @unique
   user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 model Profile {
   id        String   @id @default(uuid())
@@ -47,6 +49,8 @@ model Profile {
   updatedAt DateTime @updatedAt
   dashboardId String @unique
   dashboard Dashboard @relation(fields: [dashboardId], references: [id])
+
+  @@index([dashboardId])
 }
 model Project{
   id   String   @id @default(uuid())
@@ -56,6 +60,8 @@ model Project{
   Profile Profile  @relation(fields: [profileId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+   @@index([ profileId])
 }
 model WorkInfo{
   id   String   @id @default(uuid())
@@ -65,6 +71,9 @@ model WorkInfo{
   endYear   Int? 
   profileId String
   Profile Profile  @relation(fields: [profileId], references: [id])
+
+
+   @@index([ profileId])
 }
 
 model Interview{
@@ -81,6 +90,7 @@ model Interview{
   Analytics Analytics?
   dashboardId String
   Dashboard Dashboard @relation(fields: [dashboardId], references: [id])
+   @@index([ dashboardId])
 }
 model Message {
   id          String   @id @default(uuid())
@@ -114,6 +124,7 @@ model Analytics {
   InterviewSummary String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
 }
 model Question{
   id        String   @id @default(uuid())
