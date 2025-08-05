@@ -57,8 +57,12 @@ export default function DialogBox () {
       userTagline : profile.tagline,
     }
     const response = await fillsJob(data)
-    if(typeof response ==="object"){
-       setFormData(response);
+    if(response.status === false || response.data === undefined){
+      toast.error(response.error);
+      return;
+    }
+    if(typeof response.data ==="object"){
+       setFormData(response.data);
        if(!user?.dashboardId) return;
       }else{
        console.log(response);

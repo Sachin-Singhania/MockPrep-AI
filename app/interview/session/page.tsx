@@ -193,11 +193,14 @@ useEffect(() => {
 
           setloading(true);
     const aiResponse = await InterviewTaking(interview,formatTime(timeLeft).toString());
-    if(!aiResponse){
+    if(!aiResponse.status || aiResponse.data==undefined){
+      toast.error(aiResponse.error || "Error in AI response");
+      setloading(false);
+      setisBlock(false);
         return;
     }else{
       const aires:InterviewChat= {
-        ...aiResponse,
+        ...aiResponse.data,
         id : uuidv4(),
       }
       if(aires.ContentType === "QUESTION"){
@@ -208,7 +211,7 @@ useEffect(() => {
          if (lastQuestionId) updateInterviewQuestion(lastQuestionId,aires.score);
       }
       PlayAudioButton(aires);
-           setisBlock(false);
+      setisBlock(false);
     }
   }
   function PlayAudioButton(AiResponse:InterviewChat) {
@@ -529,7 +532,7 @@ try {
         </div>
       </div>
     </div>
-                </>
+    </>
   )
 }
 

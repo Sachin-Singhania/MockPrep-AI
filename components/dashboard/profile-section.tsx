@@ -97,15 +97,21 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
         const base64 = reader.result?.toString()
         if (base64) {
           const hey = await ResumeExtracter(base64)
-          if (typeof hey === 'string') {
-            alert(hey)
-          } else {
-            const skill= new Set(hey.Skills);
-            updateSkills(skill);
-            updateProjects(hey.Projects);
-            updateWorkExp(hey.WorkExperience);
-            toast.success("Resume Info Extracted")
+          if(hey.status === false || hey.data === undefined){
+            toast.error(hey.error || "There was an error while extracting resume information");
+            return;
           }
+          if (typeof hey.data === 'string' ) {
+            alert(hey)
+            return;
+          }
+          let data= hey.data;
+            const skill= new Set(data.Skills);
+            updateSkills(skill);
+            updateProjects(data.Projects);
+            updateWorkExp(data.WorkExperience);
+            toast.success("Resume Info Extracted")
+          
         }
       }
       reader.readAsDataURL(file)

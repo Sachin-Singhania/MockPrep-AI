@@ -1,15 +1,13 @@
 "use server"
 import { GoogleGenerativeAI as GoogleGenAI } from "@google/generative-ai";
 import pdf from "pdf-parse";
-import { getStatus } from "../utils";
 import { Buffer } from 'buffer';
 import { setInterviewDetails } from "./api";
 
 const ai = new GoogleGenAI(process.env.APIKEY as string);
 
-export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription| string> {
+export async function fillsJob(UserDetails: UserDetails){
     try {
-        console.log("HELL")
         const query = ` Create a Job Description based on user details.
         User Details:
         User Tagline : ${UserDetails.userTagline},
@@ -51,14 +49,22 @@ export async function fillsJob(UserDetails: UserDetails): Promise<JobDescription
         const data = JSON.parse(output);
         const res:JobDescription | string= data.output;
         console.log(res);
-        return res
+        return {
+            status: true,
+            data : res
+        }
     } catch (error) {
         console.log(error)
-        throw new Error("Something Went Wrong");
+        return {
+            status: false,
+            error: "Error in fillsJob function "+new Error("Error in fillsJob function").message,
+            data : undefined
+        }
+      
     }
 }
 
-export async function ResumeExtracter(pdfInput: string): Promise<Resume | string> {
+export async function ResumeExtracter(pdfInput: string) {
     try {
         const pdfData = await parsePdfIfMaxTwoPages(pdfInput);
         const systemInstruction = ` You are a smart AI Resume Extractor which takes pdf text as an input and returns the following details:-
@@ -88,10 +94,16 @@ export async function ResumeExtracter(pdfInput: string): Promise<Resume | string
         const output = response.text().trim();
         const data= JSON.parse(output);
         const result : Resume | string = data.output;
-        return result;
+        return {
+            status: true,
+            data: result
+        }
     } catch (error) {
         console.log(error)
-        throw new Error(`Error in Resume Extracter:`);
+        return {
+            status: false,
+            error: "Error in ResumeExtracter function "+new Error("Error in ResumeExtracter function").message,
+        }
     }
 
 }
@@ -158,10 +170,16 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
         ...parse,
         Sender :"ASSISTANT"
     }
-    console.log(data);
-    return data;
+    return {
+        status: true,
+        data: data
+    }
     } catch (error) {
-         console.log(error);
+        console.log(error)
+        return{
+            status:false,
+            error: "Error in InterviewTaking function "+new Error("Error in InterviewTaking function").message,
+        }
     }
 }
 
@@ -244,7 +262,6 @@ async function getTechnicalKeywords(answer: InterviewChat[]) : Promise<Interview
           const output = response.text().trim();
           console.log(output);
     const data: InterviewInsights = JSON.parse(output);
-
     return data;
         
 }
