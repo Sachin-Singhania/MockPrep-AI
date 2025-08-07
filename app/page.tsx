@@ -143,9 +143,9 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform">
                 <FileText className="w-8 h-8 text-white" />
               </div>
-              <h4 className="text-2xl font-semibold mb-3 text-gray-900 text-center">Smart Resume Builder</h4>
+              <h4 className="text-2xl font-semibold mb-3 text-gray-900 text-center">Smart Profile Builder</h4>
               <p className="text-gray-700 leading-relaxed text-center">
-                Create professional resumes with AI assistance.
+                Create your profile with our AI resume extractor feature
               </p>
             </div>
 
