@@ -3,19 +3,9 @@
 // import { PassThrough } from "stream";
 // const client = new ElevenLabsClient({ apiKey: process.env.ELEVEN_APIKEY });
 // const voiceId= "eA8FmgNe2rjMWPK5PQQZ";
-// type Ok<T> = T extends void ? { ok: true } : { ok: true; value: T };
 
-// type Err<E> = {
-//   ok: false;
-//   error: E;
-// };
 
-// type Result<T, E = string> = Ok<T> | Err<E>;
 
-// const Ok = <T>(value?: T extends void ? void : T): Ok<T> => {
-//   return (typeof value === 'undefined' ? { ok: true } : { ok: true, value }) as Ok<T>;
-// };
-// const Err = <E>(error: E): Err<E> => ({ ok: false, error });
 // export async function synthesizeSpeechStream(message:string): Promise<Result<ReadableStream<Uint8Array>,string>> {
 //   try {
     

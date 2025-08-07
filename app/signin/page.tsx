@@ -43,7 +43,11 @@ export default function SignInPage() {
         response=await register(type, email, password);
       }
       if(response){
-        if (response.data){
+        if(response.error){
+          toast.error(response.error ? response.error : "An error occurred");
+          return;
+        }else if (response.data){
+          console.log(response.data);
           toast.success("Welcome "+response.data.name ? response.data.name : response.data.email);
           const userval= {
               userId :response.data.id,
@@ -74,7 +78,7 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <form onSubmit={handleRegister} className="space-y-6">
+        <form  className="space-y-6">
           {isRegister && (
             <div>
               <Label htmlFor="name">Name</Label>
@@ -101,6 +105,10 @@ export default function SignInPage() {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 rounded-lg shadow-md transition-all duration-300"
+            onClick={(e)=>{
+              e.preventDefault();
+              handleRegister();
+            }}
           >
             {isRegister ? "Register" : "Sign In"}
           </Button>

@@ -299,7 +299,11 @@ export async function register(type : "SIGNIN"|"SIGNUP",email : string, password
         }
     }
 }catch (error) {
-        
+         return {
+            message: "An error occurred during registration",
+            status: 500,
+            error: error instanceof Error ? error.message : "Unknown error"
+         }
     }
 }
 export async function updateProfile(payload: UpdateProfilePayload) {
