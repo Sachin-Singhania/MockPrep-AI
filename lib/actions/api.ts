@@ -177,7 +177,7 @@ export async function createInterview(dashboardId : string, interviewData: JobDe
     try {
     const data = await getServerSession(authOptions);
         if (!data?.user?.userId) {
-            return { status: false, error: "Authentication failed: User not found." };
+            return { status: false, message: "Authentication failed: User not found." };
         }
         const userId = data.user.userId;
        const {success:isallow,error}= await isAllowed(userId);

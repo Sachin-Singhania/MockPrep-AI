@@ -85,7 +85,7 @@ export default function DialogBox () {
       }
       const resp=await createInterview(user?.dashboardId ,formData);
       if(!resp?.status) {
-        toast.error(resp.error || "An error occurred while creating the interview");
+        toast.error(resp.message || "An error occurred while creating the interview");
         return;
       };
       const data:interviewDetails={
