@@ -84,7 +84,10 @@ export default function DialogBox () {
         return;
       }
       const resp=await createInterview(user?.dashboardId ,formData);
-      if(!resp?.status) return;
+      if(!resp?.status) {
+        toast.error(resp.error || "An error occurred while creating the interview");
+        return;
+      };
       const data:interviewDetails={
         InterviewChatHistory : [],
         JobDescription :formData,
@@ -99,109 +102,123 @@ export default function DialogBox () {
   }
 
   const isFormInvalid = !formData.jobTitle || !formData.jobDescription || !formData.skills || formData.experience < 0;
-  return (
-          <div className="flex items-center justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Interviews</h2>
-          <p className="text-gray-600">Manage your interview sessions and practice history</p>
-        </div>
+return (
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    {/* Header Text Section */}
+    <div className="text-center sm:text-left">
+      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+        Interviews
+      </h2>
+      <p className="text-gray-600 text-sm sm:text-base">
+        Manage your interview sessions and practice history
+      </p>
+    </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              New Interview
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Interview</DialogTitle>
-              <DialogDescription>Set up a new interview session with job details and requirements</DialogDescription>
-            </DialogHeader>
+    {/* Button Section */}
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
+        <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 justify-center">
+          <Plus className="w-4 h-4 mr-2" />
+          New Interview
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create New Interview</DialogTitle>
+          <DialogDescription>
+            Set up a new interview session with job details and requirements
+          </DialogDescription>
+        </DialogHeader>
 
-            <div className="space-y-6 py-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="jobTitle">Job Title</Label>
-                  <Input
-                    id="jobTitle"
-                    placeholder="e.g. Senior Frontend Developer"
-                    value={formData.jobTitle}
-                    onChange={(e) => handleInputChange("jobTitle", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label >Difficulty Level</Label>
-                  <Select value={formData.difficulty ?? "SELECT"} onValueChange={(value) => handleInputChange("difficulty", value)}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select level">
-                        {formData.difficulty === "BEGINNER"
-                          ? "BEGINNER"
-                          : formData.difficulty === "INTERMEDIATE"
-                          ? "INTERMEDIATE"
-                          : formData.difficulty === "ADVANCED"
-                          ? "ADVANCED"
-                          : ""}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="BEGINNER">BEGINNER</SelectItem>
-                      <SelectItem value="INTERMEDIATE">INTERMEDIATE</SelectItem>
-                      <SelectItem value="ADVANCED">ADVANCED</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Job Description</Label>
-                <Textarea
-                  id="description"
-                  rows={4}
-                  placeholder="Paste the job description here..."
-                  value={formData.jobDescription}
-                  onChange={(e) => handleInputChange("jobDescription", e.target.value)}
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="skills">Required Skills</Label>
-                  <Input
-                    id="skills"
-                    placeholder="e.g. React, JavaScript, Node.js"
-                    value={formData.skills}
-                    onChange={(e) => handleInputChange("skills", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="experience">Experience Level</Label>
-                  <Input
-                    id="experience"
-                    placeholder="e.g. 3-5 years"
-                    value={formData.experience}
-                    onChange={(e) => handleInputChange("experience", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={generateJobDetails} className="flex-1 bg-transparent">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Job Details with AI
-                </Button>
-                <Button
-                  onClick={startInterview}
-                  disabled={isFormInvalid}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Interview
-                </Button>
-              </div>
+        <div className="space-y-6 py-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="jobTitle">Job Title</Label>
+              <Input
+                id="jobTitle"
+                placeholder="e.g. Senior Frontend Developer"
+                value={formData.jobTitle}
+                onChange={(e) => handleInputChange("jobTitle", e.target.value)}
+              />
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-  )
-}
+            <div>
+              <Label>Difficulty Level</Label>
+              <Select
+                value={formData.difficulty ?? "SELECT"}
+                onValueChange={(value) => handleInputChange("difficulty", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select level">
+                    {formData.difficulty === "BEGINNER"
+                      ? "BEGINNER"
+                      : formData.difficulty === "INTERMEDIATE"
+                      ? "INTERMEDIATE"
+                      : formData.difficulty === "ADVANCED"
+                      ? "ADVANCED"
+                      : ""}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BEGINNER">BEGINNER</SelectItem>
+                  <SelectItem value="INTERMEDIATE">INTERMEDIATE</SelectItem>
+                  <SelectItem value="ADVANCED">ADVANCED</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="description">Job Description</Label>
+            <Textarea
+              id="description"
+              rows={4}
+              placeholder="Paste the job description here..."
+              value={formData.jobDescription}
+              onChange={(e) => handleInputChange("jobDescription", e.target.value)}
+            />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="skills">Required Skills</Label>
+              <Input
+                id="skills"
+                placeholder="e.g. React, JavaScript, Node.js"
+                value={formData.skills}
+                onChange={(e) => handleInputChange("skills", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="experience">Experience Level</Label>
+              <Input
+                id="experience"
+                placeholder="e.g. 3-5 years"
+                value={formData.experience}
+                onChange={(e) => handleInputChange("experience", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-3">
+            <Button
+              variant="outline"
+              onClick={generateJobDetails}
+              className="flex-1 bg-transparent"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Generate Job Details with AI
+            </Button>
+            <Button
+              onClick={startInterview}
+              disabled={isFormInvalid}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              Start Interview
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  </div>
+)}

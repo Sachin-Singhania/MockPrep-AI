@@ -26,6 +26,7 @@ model User {
   updatedAt DateTime @updatedAt
   dashboards Dashboard?
   limit      Int?      @default(5)// 5 interview per user
+  isAllowed  Boolean @default(false) 
 }
 model Dashboard{
   id        String   @id @default(uuid())

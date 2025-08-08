@@ -8,12 +8,13 @@ export default function InterviewStats({
   stats: {
     totalCount: number;
     averageScore: number;
-    thisMonthCount: number;
+    thisMonthCount?: number;
     totalHours: string;
+    successRate?: number;
   };
 }) {
   return (
-    <div className="grid md:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-8 lg:grid-cols-4">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -44,8 +45,19 @@ export default function InterviewStats({
             </div>
           </CardContent>
         </Card>
-
-        <Card>
+        { stats.successRate || stats.successRate==0 ? <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Success Rate</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.successRate}</p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                <Star className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>: <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -58,7 +70,10 @@ export default function InterviewStats({
             </div>
           </CardContent>
         </Card>
-
+        }
+        
+      
+        
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">

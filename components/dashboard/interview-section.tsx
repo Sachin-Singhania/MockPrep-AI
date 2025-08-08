@@ -75,7 +75,9 @@ if (profile.interview) {
 
   return (
     <div className="p-8">
+      <div>
       <DialogBox />
+      </div>
       {/* Interview Stats */}
       <InterviewStats stats={interviewStats}/>
       {/* Past Interviews */}
@@ -96,13 +98,13 @@ if (profile.interview) {
                     <Briefcase className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{interview.jobTitle}</h4>
-                    <div className="flex items-center space-x-4 mt-1">
+                    <h4 className="font-medium text-gray-900">{interview.jobTitle ? interview.jobTitle : "No Job Title"}</h4>
+                    <div className="flex items-center space-x-4 mt-1 ">
                       <span className="text-xs text-gray-500 flex items-center">
                         <Calendar className="w-3 h-3 mr-1" />
                         {new Date(interview.date).toLocaleDateString()}
                       </span>
-                      <span className="text-xs text-gray-500 flex items-center">
+                      <span className="text-xs text-gray-500 items-center hidden sm:flex">
                         <Clock className="w-3 h-3 mr-1" />
                         {interview.duration}
                       </span>
@@ -111,7 +113,7 @@ if (profile.interview) {
                 </div>
 
                 <div className="flex items-center space-x-3">
-                  <div className="text-right">
+                  <div className="text-right hidden sm:block md:hidden lg:block">
                     <p className="font-semibold text-gray-900">{interview.score}%</p>
                     <Badge
                       variant={interview.score >= 90 ? "default" : interview.score >= 80 ? "secondary" : "outline"}

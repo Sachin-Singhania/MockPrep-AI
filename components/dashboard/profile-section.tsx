@@ -128,10 +128,14 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
   }
   return (
     <div className="p-8">
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Profile</h2>
-        <p className="text-gray-600">Manage your personal information and professional details</p>
-      </div>
+        <div className="mb-6 sm:mb-8 text-center sm:text-left">
+  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+    Profile
+  </h2>
+  <p className="text-gray-600 text-sm sm:text-base">
+   Manage your personal information and professional details
+  </p>
+</div>
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Profile Picture & Basic Info */}
         <div className="lg:col-span-1">
@@ -151,10 +155,10 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
                 accept="image/*"
                 onChange={handleAvatarChange}
               />
-              <Button variant="outline" size="sm" onClick={handleButtonClickImage}>
+              {/* <Button variant="outline" size="sm" onClick={handleButtonClickImage}>
                 <Upload className="w-4 h-4 mr-2" />
                 Change Photo
-              </Button>
+              </Button> */}
             </CardContent>
           </Card>
 
@@ -178,7 +182,7 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
                   accept="application/pdf"
                   onChange={handleFileChange}
                 />
-                <Button className="mt-3" size="sm" onClick={handleButtonClickFile}>
+                <Button className="mt-3"  onClick={handleButtonClickFile}>
                   <Upload className="w-4 h-4 mr-2" />
                   Upload Resume
                 </Button>

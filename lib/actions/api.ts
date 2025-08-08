@@ -177,9 +177,17 @@ export async function createInterview(dashboardId : string, interviewData: JobDe
     try {
     const data = await getServerSession(authOptions);
         if (!data?.user?.userId) {
-            return { success: false, error: "Authentication failed: User not found." };
+            return { status: false, error: "Authentication failed: User not found." };
         }
         const userId = data.user.userId;
+       const {success:isallow,error}= await isAllowed(userId);
+       if (!isallow) {
+        return {
+            status: false,
+            message: error || "User is not allowed to create interviews",
+            data: null,
+        };
+       }
        await checkLimit(userId);
         const id = uuidv4();
         const {success}=await startInterviewAndCreateSession(id);
@@ -461,4 +469,24 @@ async function checkLimit(userId: string) {
       throw new Error("Error checking user limit: " + error);
     }
   }
+}
+async function isAllowed(userId: string) {
+    try {
+         const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select:{ isAllowed: true }
+         })
+        if (!user) {
+            return { success: false, error: "User not found" };
+        }
+        if (user.isAllowed) {
+            return { success: true };
+        }else{
+            return { success: false, error: "Taking interview is not available for all the users. You will be notified when it will be available." };
+        }
+    } catch (error) {
+        console.error("Error checking user allowance:", error);
+        return { success: false, error: "Error checking user allowance" };
+        
+    }
 }

@@ -48,7 +48,7 @@ export default function SignInPage() {
           return;
         }else if (response.data){
           console.log(response.data);
-          toast.success("Welcome "+response.data.name ? response.data.name : response.data.email);
+          toast.success("Welcome "+response.data.name ? "Welcome "+response.data.name : "Welcome "+response.data.email);
           const userval= {
               userId :response.data.id,
               dashboardId :response.data.dashboards?.id as string,
