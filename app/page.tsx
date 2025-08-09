@@ -7,15 +7,15 @@ import { useEffect, useState } from "react"
 
 
 export default function HomePage() {
-  const {data:session,status}=useSession();
+  const { data: session, status } = useSession();
   const [showdashboard, setshowdashboard] = useState(false);
   useEffect(() => {
-    if (status === "authenticated" && session.user?.dashboardId && showdashboard==false) {
+    if (status === "authenticated" && session.user?.dashboardId && showdashboard == false) {
       setshowdashboard(true);
     }
   }, [status])
   return (
-    
+
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden relative">
       {/* Abstract background shapes */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
@@ -31,12 +31,12 @@ export default function HomePage() {
         </div>
 
         <div className="flex items-center space-x-3">
-          { showdashboard ? 
+          {showdashboard ?
             <Link href="/dashboard">
-            <Button variant="ghost" className="text-gray-700 hover:text-blue-600 font-medium">
-              Dashboard
-            </Button>
-          </Link>  : ""
+              <Button variant="ghost" className="text-gray-700 hover:text-blue-600 font-medium">
+                Dashboard
+              </Button>
+            </Link> : ""
           }
           <Link href="/signin">
             <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-full shadow-lg transition-all duration-300">

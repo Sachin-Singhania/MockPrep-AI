@@ -11,29 +11,29 @@ type SidebarOption = "dashboard" | "profile" | "interviews"
 
 export default function DashboardPage() {
   const [activeSection, setActiveSection] = useState<SidebarOption>("dashboard")
-const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const sidebarItems = [
     { id: "dashboard" as const, label: "Dashboard", icon: Settings },
     { id: "profile" as const, label: "Profile", icon: User },
     { id: "interviews" as const, label: "Interviews", icon: Briefcase },
   ]
-    const toggle = (state:boolean)=>{
-      if(state==true){
-        setActiveSection("profile");
-      }
+  const toggle = (state: boolean) => {
+    if (state == true) {
+      setActiveSection("profile");
     }
+  }
   const renderContent = () => {
     switch (activeSection) {
       case "profile":
-        return <ProfileSection  />
+        return <ProfileSection />
       case "interviews":
         return <InterviewSection />
       default:
         return <DashboardContent toggle={toggle} />
     }
   }
-return (
+  return (
     <div className="h-screen overflow-hidden bg-gray-50 flex">
 
       {/* Hamburger Button (mobile only) */}
@@ -55,9 +55,8 @@ return (
 
       {/* Sidebar */}
       <div
-        className={`fixed z-40 top-0 left-0 h-full w-72 bg-transparent p-4 flex flex-col gap-y-6 transform transition-transform duration-300 md:static md:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed z-40 top-0 left-0 h-full w-72 bg-transparent p-4 flex flex-col gap-y-6 transform transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         {/* Top Card - Logo */}
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
@@ -83,11 +82,10 @@ return (
                         setActiveSection(item.id);
                         setSidebarOpen(false); // Close sidebar on mobile
                       }}
-                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                        activeSection === item.id
+                      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${activeSection === item.id
                           ? "bg-blue-50 text-blue-700 border border-blue-200"
                           : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                      }`}
+                        }`}
                     >
                       <IconComponent className="w-5 h-5" />
                       <span className="font-medium">{item.label}</span>

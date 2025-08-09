@@ -1,96 +1,96 @@
 interface UserDetails {
-    userTagline: string;
-    userSkills: string[];
-    userExperience: number;
+  userTagline: string;
+  userSkills: string[];
+  userExperience: number;
 }
 type Project = {
-    id? : string;
-    name: string;
-    description: string;
+  id?: string;
+  name: string;
+  description: string;
 }
 interface Resume {
-    Skills: Set<string>;
-    WorkExperience: Experience[],
-    Projects: Project[]
+  Skills: Set<string>;
+  WorkExperience: Experience[],
+  Projects: Project[]
 }
 interface JobDescription {
-    jobTitle: string;
-    jobDescription: string;
-    skills: string;
-    experience: number;
-    difficulty : "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  jobTitle: string;
+  jobDescription: string;
+  skills: string;
+  experience: number;
+  difficulty: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 }
-interface pastInterviews{
-    id: string;
-    jobTitle: string;
-    date: string;
-    duration: string;
-    score: number;
+interface pastInterviews {
+  id: string;
+  jobTitle: string;
+  date: string;
+  duration: string;
+  score: number;
 }[]
 interface interviewDetails {
-    id? : string;
-    JobDescription: JobDescription,
-    InterviewChatHistory: InterviewChat[]
-    name: string,
-    startTime: Date,
+  id?: string;
+  JobDescription: JobDescription,
+  InterviewChatHistory: InterviewChat[]
+  name: string,
+  startTime: Date,
 }
 interface Experience {
-  id? :string
+  id?: string
   role: string
   company: string
-  startYear : number
+  startYear: number
   endYear?: number | null
 }
 type InterviewChat =
-    | {
-        id?: string
-        Sender: "ASSISTANT";
-        Content: string;
-        ContentType: "VALIDATION";
-        score: number;
-    }
-    | {
-        id?: string
-        Sender: "USER" | "ASSISTANT";
-        Content: string;
-        ContentType: "ANSWER" | "FORMALCHAT" | "QUESTION" | "END";
-    } ;
-    interface InterviewData extends InterviewInsights {
-      date : Date
-    candidateName: string;
-    position: string;
-    duration: string;
-    overallScore: number;
-    questionPerformance: questionPerformance[]
+  | {
+    id?: string
+    Sender: "ASSISTANT";
+    Content: string;
+    ContentType: "VALIDATION";
+    score: number;
+  }
+  | {
+    id?: string
+    Sender: "USER" | "ASSISTANT";
+    Content: string;
+    ContentType: "ANSWER" | "FORMALCHAT" | "QUESTION" | "END";
+  };
+interface InterviewData extends InterviewInsights {
+  date: Date
+  candidateName: string;
+  position: string;
+  duration: string;
+  overallScore: number;
+  questionPerformance: questionPerformance[]
 }
 type questionPerformance = {
-      id?:string
-    question: string;
-    score?: number;
-    topic: string;
-    status?: string;
+  id?: string
+  question: string;
+  score?: number;
+  topic: string;
+  status?: string;
 }
 interface InterviewInsights {
-    InterviewScores: {
-        communication: number;
-        technicalKnowledge: number;
-        problemSolving: number;
-        vocabulary: number;
-        relevance: number;
-    };
-    technicalKeywords: string[];
-    strengths: string[];
-    areasForImprovement: string[];
-    hrInsights: {
-        technicalCompetency: string;
-        experienceLevel: string;
-        culturalFit: string;
-        learningPotential: string;
-        interviewReadiness: number;
-    };
-    aiNotes: string;
+  InterviewScores: {
+    communication: number;
+    technicalKnowledge: number;
+    problemSolving: number;
+    vocabulary: number;
+    relevance: number;
+  };
+  technicalKeywords: string[];
+  strengths: string[];
+  areasForImprovement: string[];
+  hrInsights: {
+    technicalCompetency: string;
+    experienceLevel: string;
+    culturalFit: string;
+    learningPotential: string;
+    interviewReadiness: number;
+  };
+  aiNotes: string;
 };
-interface getProfile{
+interface getProfile {
   id: string;
   createdAt: Date;
   Profile: {
@@ -126,35 +126,35 @@ interface getProfile{
   fullMark: number;
 };
 type ProjectData = {
-    name: string;
-    description: string;
+  name: string;
+  description: string;
 };
 
 type WorkInfoData = {
-    company: string;
-    role: string;
-    startYear: number;
-    endYear?: number | null;
+  company: string;
+  role: string;
+  startYear: number;
+  endYear?: number | null;
 };
 
 type UpdateProfilePayload = {
-    tagline?: string;
-    about?: string;
-    skills?: string[];
-    projectsToAdd?: ProjectData[];
-    projectIdsToRemove?: string[];
-    workExperienceToAdd?: WorkInfoData[];
-    workExperienceIdsToRemove?: string[];
-  };
-  //Implement rust like Result type
+  tagline?: string;
+  about?: string;
+  skills?: string[];
+  projectsToAdd?: ProjectData[];
+  projectIdsToRemove?: string[];
+  workExperienceToAdd?: WorkInfoData[];
+  workExperienceIdsToRemove?: string[];
+};
+//Implement rust like Result type
 type Ok<T> = T extends void ? { ok: true } : { ok: true; value: T };
 
 type Err<E> = {
   ok: false;
   error: E;
 };
-  const Ok = <T>(value?: T extends void ? void : T): Ok<T> => {
-    return (typeof value === 'undefined' ? { ok: true } : { ok: true, value }) as Ok<T>;
-  };
-  const Err = <E>(error: E): Err<E> => ({ ok: false, error });
+const Ok = <T>(value?: T extends void ? void : T): Ok<T> => {
+  return (typeof value === 'undefined' ? { ok: true } : { ok: true, value }) as Ok<T>;
+};
+const Err = <E>(error: E): Err<E> => ({ ok: false, error });
 type Result<T, E = string> = Ok<T> | Err<E>;

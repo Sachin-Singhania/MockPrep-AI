@@ -7,7 +7,7 @@ declare module "next-auth" {
   interface Session {
     user?: DefaultSession["user"] & {
       userId?: string;
-      dashboardId ?: string;
+      dashboardId?: string;
     };
   }
 
@@ -20,7 +20,7 @@ declare module "next-auth" {
   }
 }
 export const authOptions = {
-  session : {
+  session: {
     strategy: "jwt" as SessionStrategy,
   },
   providers: [
@@ -31,57 +31,59 @@ export const authOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token,user }:any) {
+    async jwt({ token, user }: any) {
       try {
-        if(user){
+        if (user) {
           const exsistingUser = await prisma.user.findUnique({
-            where: { email: user.email }, include : { dashboards:  
-              {select: {id: true}} 
+            where: { email: user.email }, include: {
+              dashboards:
+                { select: { id: true } }
             }
           });
           console.log(exsistingUser);
           let userId;
           let dashboardId;
           if (!exsistingUser) {
-            const newUser =await prisma.user.create({
+            const newUser = await prisma.user.create({
               data: {
-                name: token.name ,
-                email: token.email ,googleID: token.sub,tokenExpiry : token.exp,image :token.picture,dashboards :{create  :{}},
-              },include : { dashboards:  
-              {select: {id: true}} 
-            }
+                name: token.name,
+                email: token.email, googleID: token.sub, tokenExpiry: token.exp, image: token.picture, dashboards: { create: {} },
+              }, include: {
+                dashboards:
+                  { select: { id: true } }
+              }
             });
-            userId=newUser.id
-            dashboardId=newUser.dashboards?.id;
-          }else{
+            userId = newUser.id
+            dashboardId = newUser.dashboards?.id;
+          } else {
             await prisma.user.update({
               where: { email: user.email },
-              data:{
-                googleID: token.sub,tokenExpiry : token.exp, 
+              data: {
+                googleID: token.sub, tokenExpiry: token.exp,
               },
             })
             userId = exsistingUser.id;
-            dashboardId=exsistingUser.dashboards?.id;
+            dashboardId = exsistingUser.dashboards?.id;
           }
-        token.id = user.sub ?? token.sub;
-        token.name = user.name;
-        token.email = user.email;
-         token.userId = userId;
-         token.dashboardId = dashboardId;
+          token.id = user.sub ?? token.sub;
+          token.name = user.name;
+          token.email = user.email;
+          token.userId = userId;
+          token.dashboardId = dashboardId;
         }
         return token
       } catch (error) {
-        throw new Error("Error while signing in : Error "+ error);
+        throw new Error("Error while signing in : Error " + error);
       }
     },
-    async session({ session, token }:any) {
-         session.user = {
-    ...session.user,  
-    userId: token.userId,
-    dashboardId : token.dashboardId
-  };
+    async session({ session, token }: any) {
+      session.user = {
+        ...session.user,
+        userId: token.userId,
+        dashboardId: token.dashboardId
+      };
 
-            return session;
+      return session;
     },
     async signIn() {
       const ip = headers().get('x-forwarded-for') ?? 'unknown';
@@ -91,7 +93,8 @@ export const authOptions = {
         return false;
       }
       return true;
-  },pages:{
-     signIn: '/signin',
+    }, pages: {
+      signIn: '/signin',
+    }
   }
-}}
+}

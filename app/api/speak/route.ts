@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    
+
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -16,24 +16,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized: Session token is missing" }, { status: 401 });
     }
     const token = tokenCookie.value;
-    
-    const sessionDataString:{
-      userId : string,
-      interviewId : string,
-    } | null= await redis.get(`tts-session:${token}`);
+
+    const sessionDataString: {
+      userId: string,
+      interviewId: string,
+    } | null = await redis.get(`tts-session:${token}`);
     if (!sessionDataString) {
       return NextResponse.json({ error: "Forbidden: Invalid or expired session." }, { status: 403 });
     }
-    
+
     const { userId } = sessionDataString;
-    
+
     const { success } = await ratelimit.limit(userId);
     if (!success) {
       return NextResponse.json({ error: "Too many Request" }, { status: 429 });
     }
-    
+
     const { text } = await req.json();
-    
+
     const message = text?.trim();
     if (!message || message.trim() === "") {
       return NextResponse.json({ error: "Message cannot be empty." }, { status: 400 });
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
       console.error("Eleven Labs API error:", await result.text());
       return NextResponse.json({ error: "Error generating speech from provider." }, { status: 502 });
     }
-    
+
     console.log("REACHED HERE 2")
     return new NextResponse(result.body, {
       headers: {
@@ -64,6 +64,6 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-      return NextResponse.json({ error: "Error generating speech from provider." }, { status: 502 });
+    return NextResponse.json({ error: "Error generating speech from provider." }, { status: 502 });
   }
 }

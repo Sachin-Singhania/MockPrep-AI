@@ -52,7 +52,7 @@ export default function InterviewAnalytics() {
   const [isLoading, setIsLoading] = useState(true);
   const { interviewId } = useParams<{ interviewId: string }>();
   const nav = useRouter();
-  
+
   const { allAnalytics, user, addOrUpdateAnalytics } = useChatStore();
   const [mockInterviewData, setMockInterviewData] = useState<InterviewData | null>(null);
 
@@ -60,7 +60,7 @@ export default function InterviewAnalytics() {
     if (!mockInterviewData?.InterviewScores) return [];
 
     const { communication, technicalKnowledge, problemSolving, vocabulary, relevance } = mockInterviewData.InterviewScores;
-    
+
     return [
       { subject: "Communication", score: communication, fullMark: 100 },
       { subject: "Technical", score: technicalKnowledge, fullMark: 100 },
@@ -91,7 +91,7 @@ export default function InterviewAnalytics() {
         if (res.status === 200 && res.data) {
           const transformedData = transformApiData(res.data, user.name as string);
           setMockInterviewData(transformedData);
-          addOrUpdateAnalytics(interviewId, transformedData); 
+          addOrUpdateAnalytics(interviewId, transformedData);
         }
       } catch (err) {
         console.error("Failed to fetch interview data:", err);
@@ -102,7 +102,7 @@ export default function InterviewAnalytics() {
 
     loadAnalyticsData();
   }, [interviewId, user, allAnalytics, addOrUpdateAnalytics, nav]);
- 
+
   const getScoreBadgeVariant = (score: number) => {
     if (score >= 80) return "default"
     if (score >= 60) return "secondary"
@@ -186,14 +186,14 @@ export default function InterviewAnalytics() {
                 <span className="text-4xl font-bold">{mockInterviewData?.overallScore}%</span>
               </div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Overall Performance</h2>
-              <Badge variant={getScoreBadgeVariant(mockInterviewData?.overallScore!==undefined ? mockInterviewData.overallScore : 0)} className="text-lg px-4 py-2">
-               {mockInterviewData?.overallScore !== undefined
-                        ? mockInterviewData.overallScore >= 80
-                          ? "Excellent Performance"
-                          : mockInterviewData.overallScore >= 60
-                            ? "Good Performance"
-                            : "Needs Improvement"
-                        : "No Data"}
+              <Badge variant={getScoreBadgeVariant(mockInterviewData?.overallScore !== undefined ? mockInterviewData.overallScore : 0)} className="text-lg px-4 py-2">
+                {mockInterviewData?.overallScore !== undefined
+                  ? mockInterviewData.overallScore >= 80
+                    ? "Excellent Performance"
+                    : mockInterviewData.overallScore >= 60
+                      ? "Good Performance"
+                      : "Needs Improvement"
+                  : "No Data"}
               </Badge>
             </div>
           </CardContent>
@@ -262,7 +262,7 @@ export default function InterviewAnalytics() {
             <CardContent>
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData!=null ? radarData :[] }>
+                  <RadarChart data={radarData != null ? radarData : []}>
                     <PolarGrid stroke="#e2e8f0" />
                     <PolarAngleAxis dataKey="subject" className="text-sm" />
                     <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} />
@@ -287,7 +287,7 @@ export default function InterviewAnalytics() {
               </div>
             </CardContent>
           </Card>
-              <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-0 shadow-xl">
+          <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-0 shadow-xl">
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-3 text-xl">
                 <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">

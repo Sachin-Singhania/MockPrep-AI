@@ -36,6 +36,7 @@ model Dashboard{
   updatedAt DateTime @updatedAt
   userId    String @unique
   user      User     @relation(fields: [userId], references: [id])
+  Activity RecentActivity[]
 
   @@index([userId])
 }
@@ -160,4 +161,19 @@ enum QuestionType {
 enum Status {
   IN_PROGRESS
   COMPLETED
+}
+model RecentActivity {
+  id        String   @id @default(uuid())
+  dashboardId    String
+  Dashboard Dashboard @relation(fields: [dashboardId], references: [id])
+  type      RecentActivityType
+  content      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([dashboardId,type])
+}
+enum RecentActivityType {
+  INTERVIEW 
+  PROFILE_UPDATED 
+  DASHBOARD_CREATED 
 }

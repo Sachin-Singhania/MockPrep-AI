@@ -20,7 +20,7 @@ export function ProfileSection() {
   const imageInputref = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [_resume, setResume] = useState<File | null>(null)
-  const { profile, user,updateProfilePic,updateProjects,updateWorkExp,ReplaceSkill,updateSkills} = useChatStore();
+  const { profile, user, updateProfilePic, updateProjects, updateWorkExp, ReplaceSkill, updateSkills } = useChatStore();
   const handleButtonClickImage = () => {
     imageInputref.current?.click()
   }
@@ -28,63 +28,63 @@ export function ProfileSection() {
   const handleButtonClickFile = () => {
     fileInputRef.current?.click()
   }
-  const handleSkillUpdate = async(skills: string[])=>{
-            try {
-            const {success,error,message}= await updateProfile({skills});
-                if (success) {
-                    toast.success(message)
-                   ReplaceSkill(new Set(skills))
-                }
-                if (error) {
-                  console.log("HEY")
-                    toast.error(message);
-                }
-            } catch (error) {
-                toast.error("Something went wrong");
-            }
-}
-const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
-        try {
-        const {success,error,message}= await updateProfile({workExperienceIdsToRemove:idsToRemove,workExperienceToAdd:ExpToadd});
-            if (success) {
-                toast.success(message)
-                updateWorkExp(ExpToadd);
-            }
-            if (error) {
-                toast.error(message);
-            }
-        } catch (error) {
-            toast.error("Something went wrong");
-        }
-}
-    const handleProjectUpdte = async (newProjects :Project[],removedProjectIds:string[]) => {
-        try {
-        const {success,error,message}= await updateProfile({projectIdsToRemove:removedProjectIds,projectsToAdd:newProjects});
-            if (success) {
-                toast.success(message)
-                updateProjects(newProjects);
-            }
-            if (error) {
-                toast.error(message);
-            }
-        } catch (error) {
-            toast.error("Something went wrong");
-        }
-    }
-    const handleProfileUpdate = async (tagline:string,about:string) => {
-      try {
-          const {success,error,message}= await updateProfile({tagline,about});
-          if (success) {
-            toast.success(message)
-            
-          }
-          if (error) {
-            toast.error(message);
-          }
-      } catch (error) {
-         toast.error("Something went wrong");
+  const handleSkillUpdate = async (skills: string[]) => {
+    try {
+      const { success, error, message } = await updateProfile({ skills });
+      if (success) {
+        toast.success(message)
+        ReplaceSkill(new Set(skills))
       }
+      if (error) {
+        console.log("HEY")
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
     }
+  }
+  const handleExpUpdate = async (ExpToadd: Experience[], idsToRemove: string[]) => {
+    try {
+      const { success, error, message } = await updateProfile({ workExperienceIdsToRemove: idsToRemove, workExperienceToAdd: ExpToadd });
+      if (success) {
+        toast.success(message)
+        updateWorkExp(ExpToadd);
+      }
+      if (error) {
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    }
+  }
+  const handleProjectUpdte = async (newProjects: Project[], removedProjectIds: string[]) => {
+    try {
+      const { success, error, message } = await updateProfile({ projectIdsToRemove: removedProjectIds, projectsToAdd: newProjects });
+      if (success) {
+        toast.success(message)
+        updateProjects(newProjects);
+      }
+      if (error) {
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    }
+  }
+  const handleProfileUpdate = async (tagline: string, about: string) => {
+    try {
+      const { success, error, message } = await updateProfile({ tagline, about });
+      if (success) {
+        toast.success(message)
+
+      }
+      if (error) {
+        toast.error(message);
+      }
+    } catch (error) {
+      toast.error("Something went wrong");
+    }
+  }
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || file.type !== "application/pdf" || file.size > 2 * 1024 * 1024) return
@@ -97,21 +97,21 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
         const base64 = reader.result?.toString()
         if (base64) {
           const hey = await ResumeExtracter(base64)
-          if(hey.status === false || hey.data === undefined){
+          if (hey.status === false || hey.data === undefined) {
             toast.error(hey.error || "There was an error while extracting resume information");
             return;
           }
-          if (typeof hey.data === 'string' ) {
+          if (typeof hey.data === 'string') {
             alert(hey)
             return;
           }
-          let data= hey.data;
-            const skill= new Set(data.Skills);
-            updateSkills(skill);
-            updateProjects(data.Projects);
-            updateWorkExp(data.WorkExperience);
-            toast.success("Resume Info Extracted")
-          
+          let data = hey.data;
+          const skill = new Set(data.Skills);
+          updateSkills(skill);
+          updateProjects(data.Projects);
+          updateWorkExp(data.WorkExperience);
+          toast.success("Resume Info Extracted")
+
         }
       }
       reader.readAsDataURL(file)
@@ -128,14 +128,14 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
   }
   return (
     <div className="p-8">
-        <div className="mb-6 sm:mb-8 text-center sm:text-left">
-  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-    Profile
-  </h2>
-  <p className="text-gray-600 text-sm sm:text-base">
-   Manage your personal information and professional details
-  </p>
-</div>
+      <div className="mb-6 sm:mb-8 text-center sm:text-left">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          Profile
+        </h2>
+        <p className="text-gray-600 text-sm sm:text-base">
+          Manage your personal information and professional details
+        </p>
+      </div>
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Profile Picture & Basic Info */}
         <div className="lg:col-span-1">
@@ -182,7 +182,7 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
                   accept="application/pdf"
                   onChange={handleFileChange}
                 />
-                <Button className="mt-3"  onClick={handleButtonClickFile}>
+                <Button className="mt-3" onClick={handleButtonClickFile}>
                   <Upload className="w-4 h-4 mr-2" />
                   Upload Resume
                 </Button>
@@ -192,13 +192,13 @@ const handleExpUpdate  = async(ExpToadd: Experience[],idsToRemove : string[])=>{
         </div>
         <div className="lg:col-span-2 space-y-6">
           <ProfileCard about={profile?.about} email={user?.email} name={user?.name} tagline={profile?.tagline} save={handleProfileUpdate} />
-           <SkillCard skills={profile?.Skills} save={handleSkillUpdate} /> 
-          <Exp experiences={profile?.WorkExperience  } save={handleExpUpdate}/>  
-          <ProjectCard projects={ profile?.Projects} save={handleProjectUpdte}/>    
+          <SkillCard skills={profile?.Skills} save={handleSkillUpdate} />
+          <Exp experiences={profile?.WorkExperience} save={handleExpUpdate} />
+          <ProjectCard projects={profile?.Projects} save={handleProjectUpdte} />
         </div>
       </div>
     </div>
   )
 }
- 
+
 

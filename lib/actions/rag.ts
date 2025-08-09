@@ -6,7 +6,7 @@ import { setInterviewDetails } from "./api";
 
 const ai = new GoogleGenAI(process.env.APIKEY as string);
 
-export async function fillsJob(UserDetails: UserDetails){
+export async function fillsJob(UserDetails: UserDetails) {
     try {
         const query = ` Create a Job Description based on user details.
         User Details:
@@ -45,22 +45,22 @@ export async function fillsJob(UserDetails: UserDetails){
             ]
         });
         const output = response.text().trim();
-            
+
         const data = JSON.parse(output);
-        const res:JobDescription | string= data.output;
+        const res: JobDescription | string = data.output;
         console.log(res);
         return {
             status: true,
-            data : res
+            data: res
         }
     } catch (error) {
         console.log(error)
         return {
             status: false,
-            error: "Error in fillsJob function "+new Error("Error in fillsJob function").message,
-            data : undefined
+            error: "Error in fillsJob function " + new Error("Error in fillsJob function").message,
+            data: undefined
         }
-      
+
     }
 }
 
@@ -92,8 +92,8 @@ export async function ResumeExtracter(pdfInput: string) {
             ]
         });
         const output = response.text().trim();
-        const data= JSON.parse(output);
-        const result : Resume | string = data.output;
+        const data = JSON.parse(output);
+        const result: Resume | string = data.output;
         return {
             status: true,
             data: result
@@ -102,21 +102,21 @@ export async function ResumeExtracter(pdfInput: string) {
         console.log(error)
         return {
             status: false,
-            error: "Error in ResumeExtracter function "+new Error("Error in ResumeExtracter function").message,
+            error: "Error in ResumeExtracter function " + new Error("Error in ResumeExtracter function").message,
         }
     }
 
 }
 
-export async function InterviewTaking(interviewDetails: interviewDetails,timeLeft:string) {
+export async function InterviewTaking(interviewDetails: interviewDetails, timeLeft: string) {
     try {
         console.log(timeLeft);
         const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-3);
-        let message= {
-            InterviewChatHistory : lastThreeMessages,
-            JobDescription : interviewDetails.JobDescription,timeLeft
+        let message = {
+            InterviewChatHistory: lastThreeMessages,
+            JobDescription: interviewDetails.JobDescription, timeLeft
         }
-    const systemInstruction = `You are an AI Interview Taker. You take job interviews of users based on job description , title , skills and experience.
+        const systemInstruction = `You are an AI Interview Taker. You take job interviews of users based on job description , title , skills and experience.
         You will also be provided with chats history of the interview if provided , if not then you will start from scratch.
         
         RULES : - 
@@ -149,68 +149,68 @@ export async function InterviewTaking(interviewDetails: interviewDetails,timeLef
          You : {ContentType:"FORMALCHAT",Content :"Good Evening , Mr Doe . Thank you for joining me today . Tell me a little about yourself and why you want to work with us? ."}
 
          `;
-    const model = ai.getGenerativeModel({
-       model: "gemini-1.5-flash",
+        const model = ai.getGenerativeModel({
+            model: "gemini-1.5-flash",
             generationConfig: {
                 responseMimeType: "application/json",
             },
-        systemInstruction: {
-            role: "system",
-            parts: [{ text: systemInstruction }]
-        },
-    });
-    const { response } = await model.generateContent({
-        contents: [
-            { role: "user", parts: [{ text: JSON.stringify(message) }] }
-        ]
-    });
-    const output = response.text().trim();
-    const parse = JSON.parse(output);
-    let data:InterviewChat ={
-        ...parse,
-        Sender :"ASSISTANT"
-    }
-    return {
-        status: true,
-        data: data
-    }
+            systemInstruction: {
+                role: "system",
+                parts: [{ text: systemInstruction }]
+            },
+        });
+        const { response } = await model.generateContent({
+            contents: [
+                { role: "user", parts: [{ text: JSON.stringify(message) }] }
+            ]
+        });
+        const output = response.text().trim();
+        const parse = JSON.parse(output);
+        let data: InterviewChat = {
+            ...parse,
+            Sender: "ASSISTANT"
+        }
+        return {
+            status: true,
+            data: data
+        }
     } catch (error) {
         console.log(error)
-        return{
-            status:false,
-            error: "Error in InterviewTaking function "+new Error("Error in InterviewTaking function").message,
+        return {
+            status: false,
+            error: "Error in InterviewTaking function " + new Error("Error in InterviewTaking function").message,
         }
     }
 }
 
 
-export async function analytics(interviewDetails: interviewDetails,questions:questionPerformance[],end:Date) {
+export async function analytics(interviewDetails: interviewDetails, questions: questionPerformance[], end: Date) {
     try {
-        let start= interviewDetails.startTime;
+        let start = interviewDetails.startTime;
         let duration = (end.getTime() - start.getTime()) / 1000;
-    const answer = interviewDetails.InterviewChatHistory.filter((val) => val.ContentType == "ANSWER");
-    let questionPerformance = questions.filter((val) => val.score != undefined);
+        const answer = interviewDetails.InterviewChatHistory.filter((val) => val.ContentType == "ANSWER");
+        let questionPerformance = questions.filter((val) => val.score != undefined);
 
-    const technicalKeywords = await getTechnicalKeywords(answer);
-    const InterviewScores = Object.values(technicalKeywords.InterviewScores);
-    const overallScore = InterviewScores.reduce((a, b) => a + b, 0) / InterviewScores.length;
+        const technicalKeywords = await getTechnicalKeywords(answer);
+        const InterviewScores = Object.values(technicalKeywords.InterviewScores);
+        const overallScore = InterviewScores.reduce((a, b) => a + b, 0) / InterviewScores.length;
 
-    const interviewData: InterviewData = {
-        date : interviewDetails.startTime,
-        candidateName: interviewDetails.name,
-        position: interviewDetails.JobDescription.jobTitle,
-        duration: duration+ " seconds",
-        overallScore,
-        questionPerformance,
-        ...technicalKeywords,
-    };
-    await setInterviewDetails(interviewData,interviewDetails,end)
-    return interviewData;
-} catch (error) {
-         console.error(error);
+        const interviewData: InterviewData = {
+            date: interviewDetails.startTime,
+            candidateName: interviewDetails.name,
+            position: interviewDetails.JobDescription.jobTitle,
+            duration: duration + " seconds",
+            overallScore,
+            questionPerformance,
+            ...technicalKeywords,
+        };
+        await setInterviewDetails(interviewData, interviewDetails, end)
+        return interviewData;
+    } catch (error) {
+        console.error(error);
     }
 }
-async function getTechnicalKeywords(answer: InterviewChat[]) : Promise<InterviewInsights>{
+async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewInsights> {
 
     const systemInstruction = `You are an AI Interview Evaluator. Your job is to analyze a candidate's answers from an AI-powered mock interview and return structured JSON data as per the format described below.
 
@@ -243,44 +243,44 @@ async function getTechnicalKeywords(answer: InterviewChat[]) : Promise<Interview
                
                `
 
-            const model = ai.getGenerativeModel({
-            model: "gemini-2.5-pro",
-            generationConfig: {
-                temperature: 0.8,
-                responseMimeType: "application/json",
-            },
-            systemInstruction: {
-                role: "system",
-                parts: [{ text: systemInstruction }]
-            },
-        });
-        const { response } = await model.generateContent({
-            contents: [
-                { role: "user", parts: [{ text: JSON.stringify(answer) }] }
-            ]
-        });
-          const output = response.text().trim();
-          console.log(output);
+    const model = ai.getGenerativeModel({
+        model: "gemini-2.5-pro",
+        generationConfig: {
+            temperature: 0.8,
+            responseMimeType: "application/json",
+        },
+        systemInstruction: {
+            role: "system",
+            parts: [{ text: systemInstruction }]
+        },
+    });
+    const { response } = await model.generateContent({
+        contents: [
+            { role: "user", parts: [{ text: JSON.stringify(answer) }] }
+        ]
+    });
+    const output = response.text().trim();
+    console.log(output);
     const data: InterviewInsights = JSON.parse(output);
     return data;
-        
-}
-async function parsePdfIfMaxTwoPages(base64:string) {
-   const base64Data = base64.split(";base64,").pop();
 
-  if (!base64Data) {
-    throw new Error("Invalid base64 data");
-  }
-      const buffer = Buffer.from(base64Data, "base64");
-    
-      const data = await pdf(buffer);
+}
+async function parsePdfIfMaxTwoPages(base64: string) {
+    const base64Data = base64.split(";base64,").pop();
+
+    if (!base64Data) {
+        throw new Error("Invalid base64 data");
+    }
+    const buffer = Buffer.from(base64Data, "base64");
+
+    const data = await pdf(buffer);
     console.log(data.numpages)
-      if (data.numpages >= 3) {
+    if (data.numpages >= 3) {
         throw new Error("PDF must have less than 3 pages.");
-      }
-    
-      console.log("PDF is valid. Continue processing...");
-          return data.text.trim();
-  
+    }
+
+    console.log("PDF is valid. Continue processing...");
+    return data.text.trim();
+
 }
 

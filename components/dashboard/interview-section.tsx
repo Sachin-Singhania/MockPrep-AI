@@ -14,26 +14,26 @@ import { toast } from "sonner"
 
 
 export function InterviewSection() {
-  const {profile}=useChatStore();
+  const { profile } = useChatStore();
   const [interviews, setinterviews] = useState<pastInterviews[] | null>();
-  const nav= useRouter();
- 
-    const pastInterviews = useMemo(() => {
+  const nav = useRouter();
+
+  const pastInterviews = useMemo(() => {
     if (!profile?.interview) return [];
-    
+
     return profile.interview
       .filter(int => int.startTime && int.endTime)
       .map(int => ({
         id: int.id,
         jobTitle: int.Jobtitle,
-        date:  new Date(int.startTime).toLocaleDateString(),
-        duration: getTimeDiffInMins(new Date(int.startTime), new Date(int.endTime!)), 
+        date: new Date(int.startTime).toLocaleDateString(),
+        duration: getTimeDiffInMins(new Date(int.startTime), new Date(int.endTime!)),
         score: int.Analytics?.overallScore || 0,
       }));
   }, [profile?.interview]);
 
-  
-    const interviewStats = useMemo(() => {
+
+  const interviewStats = useMemo(() => {
     const totalCount = pastInterviews.length;
     if (totalCount === 0) {
       return { totalCount: 0, averageScore: 0, thisMonthCount: 0, totalHours: "0h" };
@@ -43,7 +43,7 @@ export function InterviewSection() {
     const averageScore = Math.round(totalScore / totalCount);
 
     const currentMonth = new Date().getMonth();
-    const thisMonthCount = pastInterviews.filter(p => p.date.split("/")[0] === (currentMonth+1).toString()).length;
+    const thisMonthCount = pastInterviews.filter(p => p.date.split("/")[0] === (currentMonth + 1).toString()).length;
 
     const totalMinutes = pastInterviews.reduce((acc, curr) => acc + curr.duration, 0);
     const totalHours = (totalMinutes / 60).toFixed(1);
@@ -53,33 +53,33 @@ export function InterviewSection() {
 
 
   useEffect(() => {
-    if(!profile){
+    if (!profile) {
       toast.error("Profile data not found")
-      nav.push( "/");
+      nav.push("/");
     };
     let data: pastInterviews[] = [];
-    if(profile?.interview==null) return;
-if (profile.interview) {
-  data = profile.interview
-      .filter((int) => int.startTime && int.endTime) 
-      .map((int) => ({
-        id: int.id,
-        jobTitle: int.Jobtitle,
-        date: new Date(int.startTime).toLocaleDateString(), 
-        duration: `${getTimeDiffInMins(new Date(int.startTime), new Date(int.endTime!))} mins`,
-        score: int.Analytics?.overallScore || 0,
-      }));
+    if (profile?.interview == null) return;
+    if (profile.interview) {
+      data = profile.interview
+        .filter((int) => int.startTime && int.endTime)
+        .map((int) => ({
+          id: int.id,
+          jobTitle: int.Jobtitle,
+          date: new Date(int.startTime).toLocaleDateString(),
+          duration: `${getTimeDiffInMins(new Date(int.startTime), new Date(int.endTime!))} mins`,
+          score: int.Analytics?.overallScore || 0,
+        }));
       setinterviews(data);
-  }
+    }
   }, [profile])
 
   return (
     <div className="p-8">
       <div>
-      <DialogBox />
+        <DialogBox />
       </div>
       {/* Interview Stats */}
-      <InterviewStats stats={interviewStats}/>
+      <InterviewStats stats={interviewStats} />
       {/* Past Interviews */}
       <Card>
         <CardHeader>
@@ -128,7 +128,7 @@ if (profile.interview) {
                       {interview.score >= 90 ? "Excellent" : interview.score >= 80 ? "Good" : "Fair"}
                     </Badge>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={()=>{
+                  <Button variant="ghost" size="sm" onClick={() => {
                     nav.push(`/interview/${interview.id}`)
                   }}>
                     View Details
@@ -144,9 +144,9 @@ if (profile.interview) {
 }
 
 
- 
 
 
- 
+
+
 
 

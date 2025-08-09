@@ -18,11 +18,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>  
-      <AuthProvider >
-              <Toaster position="top-right" />
-        {children}
-      </AuthProvider>
+      <body>
+        <AuthProvider >
+          <Toaster position="top-right" />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   )

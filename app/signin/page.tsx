@@ -17,50 +17,51 @@ export default function SignInPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setname] = useState("")
-  const {setUser}=useChatStore();
-  const nav= useRouter();
+  const { setUser } = useChatStore();
+  const nav = useRouter();
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword)
   }
 
-  const handleGoogleLogin = async() => {
-   await signIn("google" ,{callbackUrl: "/dashboard"});
+  const handleGoogleLogin = async () => {
+    await signIn("google", { callbackUrl: "/dashboard" });
   }
-  const handleRegister = async() => {
+  const handleRegister = async () => {
     let type;
-    if(isRegister) type = "SIGNUP"
+    if (isRegister) type = "SIGNUP"
     else type = "SIGNIN"
-    if (email && password ) {
+    if (email && password) {
       let response;
-      if(type === "SIGNUP" ){
-        if (name.trim()=="") {
+      if (type === "SIGNUP") {
+        if (name.trim() == "") {
           toast.error("Please enter your name")
           return;
-        }; 
-        response=await register(type, email, password, name);
+        };
+        response = await register(type, email, password, name);
       }
-      if (type === "SIGNIN"){
-        response=await register(type, email, password);
+      if (type === "SIGNIN") {
+        response = await register(type, email, password);
       }
-      if(response){
-        if(response.error){
+      if (response) {
+        if (response.error) {
           toast.error(response.error ? response.error : "An error occurred");
           return;
-        }else if (response.data){
+        } else if (response.data) {
           console.log(response.data);
-          toast.success("Welcome "+response.data.name ? "Welcome "+response.data.name : "Welcome "+response.data.email);
-          const userval= {
-              userId :response.data.id,
-              dashboardId :response.data.dashboards?.id as string,
-              name : response.data.name as string,
-              email : response.data.email as string,
-              profilePic :response.data.image as string
-           }
+          toast.success("Welcome " + response.data.name ? "Welcome " + response.data.name : "Welcome " + response.data.email);
+          const userval = {
+            userId: response.data.id,
+            dashboardId: response.data.dashboards?.id as string,
+            name: response.data.name as string,
+            email: response.data.email as string,
+            profilePic: response.data.image as string
+          }
           setUser(userval);
           nav.push("/dashboard");
         }
       }
-  }}
+    }
+  }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 relative overflow-hidden">
       {/* Abstract background shapes */}
@@ -78,20 +79,20 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <form  className="space-y-6">
+        <form className="space-y-6">
           {isRegister && (
             <div>
               <Label htmlFor="name">Name</Label>
-              <Input id="name" type="text" placeholder="Your Name" required onChange={ e => setname(e.target.value)} />
+              <Input id="name" type="text" placeholder="Your Name" required onChange={e => setname(e.target.value)} />
             </div>
           )}
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="your@example.com" required onChange={ e => setEmail(e.target.value)}/>
+            <Input id="email" type="email" placeholder="your@example.com" required onChange={e => setEmail(e.target.value)} />
           </div>
           <div className="relative">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" required onChange={ e => setPassword(e.target.value)}/>
+            <Input id="password" type={showPassword ? "text" : "password"} placeholder="••••••••" required onChange={e => setPassword(e.target.value)} />
             <Button
               type="button"
               variant="ghost"
@@ -105,7 +106,7 @@ export default function SignInPage() {
           <Button
             type="submit"
             className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2.5 rounded-lg shadow-md transition-all duration-300"
-            onClick={(e)=>{
+            onClick={(e) => {
               e.preventDefault();
               handleRegister();
             }}
@@ -123,7 +124,7 @@ export default function SignInPage() {
           </div>
         </div>
 
-        <Button  onClick={handleGoogleLogin}
+        <Button onClick={handleGoogleLogin}
           variant="outline"
           className="w-full flex items-center justify-center space-x-2 py-2.5 rounded-lg border-gray-300 hover:bg-gray-50 transition-colors bg-transparent"
         >
@@ -137,14 +138,14 @@ export default function SignInPage() {
           {isRegister ? (
             <>
               Already have an account?
-              <div  onClick={() => setIsRegister(false)} className="text-blue-600 hover:underline cursor-pointer">
+              <div onClick={() => setIsRegister(false)} className="text-blue-600 hover:underline cursor-pointer">
                 Sign In
               </div>
             </>
           ) : (
             <>
               Don&apos;t have an account?
-              <div  onClick={() => setIsRegister(true)} className="text-blue-600 hover:underline cursor-pointer">
+              <div onClick={() => setIsRegister(true)} className="text-blue-600 hover:underline cursor-pointer">
                 Register
               </div>
             </>
