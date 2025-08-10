@@ -47,7 +47,16 @@ export const authOptions = {
             const newUser = await prisma.user.create({
               data: {
                 name: token.name,
-                email: token.email, googleID: token.sub, tokenExpiry: token.exp, image: token.picture, dashboards: { create: {} },
+                email: token.email, googleID: token.sub, tokenExpiry: token.exp, image: token.picture, dashboards: { create: {
+                    Activity :{
+                        create: {
+                            content: {
+                                date: new Date()
+                            },
+                            type: "DASHBOARD_CREATED"
+                        }
+                    }
+                } },
               }, include: {
                 dashboards:
                   { select: { id: true } }

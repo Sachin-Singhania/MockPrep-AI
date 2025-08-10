@@ -1,4 +1,6 @@
 import { getStatus } from '@/lib/utils'
+import { RecentActivityType } from '@prisma/client'
+import { JsonValue } from '@prisma/client/runtime/library'
 import { create } from 'zustand'
 
 type User = {
@@ -13,6 +15,11 @@ export interface Profile extends Resume {
   about: string | undefined
   tagline: string | undefined
   interview: ProfileInterview[]| null
+  activity: {
+    type: RecentActivityType;
+    content: JsonValue
+  }[] | null
+  
 }
 interface ProfileInterview {
     id: string;

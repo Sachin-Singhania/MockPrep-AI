@@ -13,7 +13,7 @@ class LimitExceededError extends Error {
         this.name = "LimitExceededError";
     }
 }
-export async function getProfile(userId: string) {
+export async function getProfile(userId: string)  {
     try {
         const resp = await prisma.dashboard.findFirst({
             where: {
@@ -56,6 +56,11 @@ export async function getProfile(userId: string) {
                         },
                         startTime: true,
                         endTime: true, Jobtitle: true
+                    }
+                },Activity:{
+                    select: {
+                        type: true,
+                        content: true,
                     }
                 }
             }
@@ -161,7 +166,28 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
                     }
                 },
             }
-        })
+        });
+        try {
+            const data = await getServerSession(authOptions);
+            const userId = data.user.userId;
+            await prisma.dashboard.update({
+                where: { userId: userId },
+                data: {
+                    Activity:{
+                        create: {
+                            content :{
+                                interviewId: interviewDetails.id,
+                                jobTitle: interviewDetails.JobDescription.jobTitle ,
+                                overallScore: interviewData.overallScore,
+                                date: new Date(),
+                            },type : "INTERVIEW"
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error updating user activity:", error);
+        }
         return {
             message: "Interview details updated successfully",
             status: 200,
@@ -294,13 +320,23 @@ export async function register(type: "SIGNIN" | "SIGNUP", email: string, passwor
             }
         } else {
             const response = await prisma.user.create({
-                data: { email, name, password: bcrypt.hashSync(password, 10), dashboards: { create: {} } },
+                data: { email, name, password: bcrypt.hashSync(password, 10), dashboards: { create: {
+                    Activity :{
+                        create: {
+                            content: {
+                                date: new Date()
+                            },
+                            type: "DASHBOARD_CREATED"
+                        }
+                    }
+                } } },
                 select: {
                     id: true,
                     email: true,
                     name: true,
                     image: true,
-                    dashboards: { select: { id: true } }
+                    dashboards: {
+                        select: { id: true } }
                 }
             });
             return {
@@ -332,7 +368,7 @@ export async function updateProfile(payload: UpdateProfilePayload) {
         if (!dashboard) {
             return { success: false, error: "Profile not found for the current user." };
         }
-
+        let flag=true;
         let profileId = dashboard.Profile?.id;
         if (!dashboard.Profile || !profileId) {
             const response = await prisma.dashboard.update({
@@ -340,10 +376,42 @@ export async function updateProfile(payload: UpdateProfilePayload) {
                 data: {
                     Profile: {
                         create: {}
+                    },Activity:{
+                        create: {
+                            content: {
+                                date: new Date()
+                            },
+                            type: "PROFILE_UPDATED"
+                        }
                     }
                 }
             });
             profileId = response.id;
+            flag=false;
+        }
+        
+        if(flag){
+            const getActivity = await prisma.recentActivity.findFirst({
+                where: {
+                    dashboardId: dashboard.id,
+                    type: "PROFILE_UPDATED",
+                    createdAt: {
+                        gte: new Date(new Date().setHours(0, 0, 0, 0)), 
+                    },
+                },
+            });
+            
+            if (getActivity==null) {
+                await prisma.recentActivity.create({
+                    data: {
+                        dashboardId: dashboard.id,
+                        type: "PROFILE_UPDATED",
+                        content: {
+                            date: new Date(),
+                        },
+                    },
+                });
+            } 
         }
 
         await prisma.$transaction(async (tx) => {

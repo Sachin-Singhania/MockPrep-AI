@@ -62,6 +62,7 @@ export function DashboardContent({ toggle }: { toggle(status: boolean): void }) 
         Projects: data.Profile?.Projects ?? [],
         Skills: new Set(data.Profile?.Skills) ?? [],
         WorkExperience: data.Profile?.WorkExperience ?? [],
+        activity: data.Activity ?? [] 
       }
       setProfile(profile)
     }
