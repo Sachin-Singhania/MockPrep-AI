@@ -1,3 +1,4 @@
+
 interface UserDetails {
   userTagline: string;
   userSkills: string[];
@@ -90,40 +91,7 @@ interface InterviewInsights {
   };
   aiNotes: string;
 };
-// interface getProfile {
-//   id: string;
-//   createdAt: Date;
-//   Profile: {
-//     id: string;
-//     tagline: string | null;
-//     about: string | null;
-//     Skills: string[];
-//     WorkExperience: {
-//       id: string;
-//       company: string;
-//       role: string;
-//       startYear: number;
-//       endYear: number | null;
-//     }[];
-//     Projects: {
-//       id: string;
-//       name: string;
-//       description: string;
-//     }[];
-//   } | null;
-//   Interview: {
-//     id: string;
-//     startTime: Date;
-//     endTime: Date | null;
-//     Analytics: {
-//       id: string;
-//       overallScore: number;
-//     } | null;
-//   }[];
-//   Activity: {
-//     type: "DASHBOARD_CREATED" | "PROFILE_UPDATED" | "INTERVIEW_SCHEDULED";
-//     content: JSON
-//   }[]
+
 type RadarDataItem = {
   subject: string;
   score: number;
@@ -150,6 +118,7 @@ type UpdateProfilePayload = {
   workExperienceToAdd?: WorkInfoData[];
   workExperienceIdsToRemove?: string[];
 };
+
 //Implement rust like Result type
 type Ok<T> = T extends void ? { ok: true } : { ok: true; value: T };
 

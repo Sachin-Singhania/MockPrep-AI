@@ -84,16 +84,16 @@ export default function DialogBox() {
       return;
     }
     const resp = await createInterview(user?.dashboardId, formData);
-    if (!resp?.status) {
-      toast.error(resp.message || "An error occurred while creating the interview");
+    if (!resp.ok) {
+      toast.error(`Error: ${resp.error || "Failed to create interview"}`);
       return;
-    };
+    }
     const data: interviewDetails = {
       InterviewChatHistory: [],
       JobDescription: formData,
       name: user.name as string,
       startTime: new Date(),
-      id: resp?.data?.id
+      id: resp.value?.data?.id
     }
     setInterview(data);
     toast.success("Interview is going to start")

@@ -1,19 +1,16 @@
 "use server"
-import { getServerSession } from "next-auth";
-import { prisma } from "../prisma";
-import bcrypt from "bcryptjs";
-import { authOptions } from "../auth";
-import { uuidv4 } from "../utils";
-import { redis } from "../redis";
-import { cookies } from "next/headers";
 import { Level, QuestionType } from "@prisma/client";
-class LimitExceededError extends Error {
-    constructor(message: string = "User limit exceeded") {
-        super(message);
-        this.name = "LimitExceededError";
-    }
-}
-export async function getProfile(userId: string)  {
+import bcrypt from "bcryptjs";
+import { getServerSession } from "next-auth";
+import { cookies } from "next/headers";
+import { createInterviewPayload, InterviewResult, LimitExceededError, ProfileResult, RegisterPayload } from "../apitypes";
+import { authOptions } from "../auth";
+import { prisma } from "../prisma";
+import { redis } from "../redis";
+import { uuidv4 } from "../utils";
+
+
+export async function getProfile(userId: string) : Promise<Result<{ message: string; data: ProfileResult | null },string>> {
     try {
         const resp = await prisma.dashboard.findFirst({
             where: {
@@ -41,6 +38,7 @@ export async function getProfile(userId: string)  {
                         },
                         tagline: true,
                         about: true,
+                        
                     }
                 }, Interview: {
                     where: {
@@ -62,41 +60,42 @@ export async function getProfile(userId: string)  {
                         type: true,
                         content: true,
                     }
-                }
+                },id : true,
+                createdAt: true,
             }
         })
-        return {
+        return Ok({
             message: "Profile Retrieved Successfully",
             data: resp
-        }
+        })
     } catch (error) {
-        console.log(error);
-        return {
-            message: "Error Occured",
-            data: null
-        }
+        console.error("Error fetching profile:", error);
+             return Err("Error Occured : "+error);
     }
 }
-export async function getInterviewDetails(interviewId: string) {
+
+export async function getInterviewDetails(interviewId: string) : Promise<Result<{ message: string; status: number; data?: InterviewResult | null },string>> {
     if (!interviewId) {
-        return {
+        return Ok({
             message: " Analytics ID is required",
             status: 400,
-        }
+        })
     }
-    const interview = await prisma.analytics.findUnique({
-        where: { interviewId },
-        select: {
-            CommunicationScore: true,
-            ProblemSolvingScore: true,
-            HRInsight: true,
-            GrowthAreas: true,
-            InterviewSummary: true,
-            KeyStrengths: true,
-            overallScore: true,
-            VocabularyScore: true,
-            TechnicalKeywords: true,
-            TechnicalScore: true,
+    try {
+        
+        const interview = await prisma.analytics.findUnique({
+            where: { interviewId },
+            select: {
+                CommunicationScore: true,
+                ProblemSolvingScore: true,
+                HRInsight: true,
+                GrowthAreas: true,
+                InterviewSummary: true,
+                KeyStrengths: true,
+                overallScore: true,
+                VocabularyScore: true,
+                TechnicalKeywords: true,
+                TechnicalScore: true,
             RelevanceScore: true, questions: {
                 select: {
                     id: true,
@@ -111,14 +110,19 @@ export async function getInterviewDetails(interviewId: string) {
             }
         }
     });
-    return {
+    return Ok({
         message: "Interview details fetched successfully",
         status: 200,
         data: interview
-    };
+    });
+} catch (error) {
+    console.error(error);
+    return Err("Error fetching interview details: " + error);
+}
 
 }
-export async function setInterviewDetails(interviewData: InterviewData, interviewDetails: interviewDetails, endTime: Date) {
+
+export async function setInterviewDetails(interviewData: InterviewData, interviewDetails: interviewDetails, endTime: Date) : Promise<Result<{ message: string; status: number },string>> {
     try {
         await prisma.interview.update({
             where: { id: interviewDetails.id },
@@ -188,42 +192,34 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
         } catch (error) {
             console.error("Error updating user activity:", error);
         }
-        return {
+        return Ok({
             message: "Interview details updated successfully",
             status: 200,
-        }
+        })
     } catch (e) {
         console.error(e);
-        return {
-            message: "Error updating interview details",
-            status: 500,
-        }
+        return Err(
+            "Error updating interview details" + (e instanceof Error ? `: ${e.message}` : "")
+        )
     }
 }
-export async function createInterview(dashboardId: string, interviewData: JobDescription) {
+
+export async function createInterview(dashboardId: string, interviewData: JobDescription) : Promise<Result<{ status: boolean; message: string; data?:createInterviewPayload},string>> {
     try {
         const data = await getServerSession(authOptions);
         if (!data?.user?.userId) {
-            return { status: false, message: "Authentication failed: User not found." };
+            return Err("Authentication failed: User not found.");
         }
         const userId = data.user.userId;
         const { success: isallow, error } = await isAllowed(userId);
         if (!isallow) {
-            return {
-                status: false,
-                message: error || "User is not allowed to create interviews",
-                data: null,
-            };
+            return Err( error || "User is not allowed to create interviews");
         }
         await checkLimit(userId);
         const id = uuidv4();
         const { success } = await startInterviewAndCreateSession(id);
         if (!success) {
-            return {
-                status: false,
-                message: "Failed to start interview and create session",
-                data: null,
-            }
+            return Err("Failed to start interview and create session");
         }
         const response = await prisma.interview.create({
             data: {
@@ -252,45 +248,35 @@ export async function createInterview(dashboardId: string, interviewData: JobDes
             }
         });
 
-        return {
+        return Ok({
             status: true,
             message: "Interview created successfully",
             data: response,
-        };
+        });
     } catch (error) {
         if (error instanceof LimitExceededError) {
-            return {
-                status: false,
-                message: "Limit exceeded",
-                data: null,
-            }
+            return Err("User limit exceeded. Please try again later.");
         }
-        return {
-            status: false,
-            message: "Failed to create interview",
-            data: null,
-        }
+        console.error("Error creating interview:", error);
+        return Err("An error occurred while creating the interview: " + (error instanceof Error ? error.message : "Unknown error"));
     }
 }
-export async function register(type: "SIGNIN" | "SIGNUP", email: string, password: string, name?: string) {
-    try {
 
+export async function register(type: "SIGNIN" | "SIGNUP", email: string, password: string, name?: string) : Promise<Result<{ message: string; status: number; data: RegisterPayload },string>> {
+    try {
         if (!email || !password || (type == "SIGNUP" && !name)) {
-            return {
-                message: "All Credentials are required",
-                status: 400
-            }
+            return Err ("Email, password and name are required for registration");
         };
         const user = await prisma.user.findUnique({ where: { email }, include: { dashboards: { select: { id: true } } } });
         if (user) {
             if (user.password == null) {
                 const bypass = bcrypt.hashSync(password, 10);
                 const response = await prisma.user.update({ where: { email }, data: { password: bypass }, select: { email: true, id: true, image: true, name: true, dashboards: { select: { id: true } } } });
-                return {
+                return Ok({
                     message: "Password updated successfully",
                     status: 200,
                     data: response
-                }
+                })
             } else {
                 const isValid = bcrypt.compareSync(password, user.password);
                 if (isValid) {
@@ -311,15 +297,15 @@ export async function register(type: "SIGNIN" | "SIGNUP", email: string, passwor
                             id: user.dashboards?.id as string
                         }
                     }
-                    return {
+                    return Ok({
                         message: "User signed in successfully",
                         status: 200,
                         data
-                    }
+                    })
                 }
             }
-        } else {
-            const response = await prisma.user.create({
+        }
+        const response = await prisma.user.create({
                 data: { email, name, password: bcrypt.hashSync(password, 10), dashboards: { create: {
                     Activity :{
                         create: {
@@ -339,24 +325,21 @@ export async function register(type: "SIGNIN" | "SIGNUP", email: string, passwor
                         select: { id: true } }
                 }
             });
-            return {
+            return Ok({
                 message: "User created successfully",
                 status: 201,
                 data: response
-            }
-        }
+            })
+
     } catch (error) {
-        return {
-            message: "An error occurred during registration",
-            status: 500,
-            error: error instanceof Error ? error.message : "Unknown error"
-        }
+        return Err(error instanceof Error ? error.message : "An unexpected error occurred");
     }
 }
-export async function updateProfile(payload: UpdateProfilePayload) {
+
+export async function updateProfile(payload: UpdateProfilePayload) : Promise<Result<{ success: boolean; message?: string},string>> {
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {
-        return { success: false, error: "Authentication failed: User not found." };
+        return Err("Authentication failed: User not found.");
     }
     const userId = data.user.userId;
     try {
@@ -366,7 +349,7 @@ export async function updateProfile(payload: UpdateProfilePayload) {
         });
 
         if (!dashboard) {
-            return { success: false, error: "Profile not found for the current user." };
+            return Err("Dashboard not found for the user.");
         }
         let flag=true;
         let profileId = dashboard.Profile?.id;
@@ -462,13 +445,17 @@ export async function updateProfile(payload: UpdateProfilePayload) {
             }
         });
 
-        return { success: true, message: "Profile updated successfully!" };
+        return Ok({ success: true, message: "Profile updated successfully!" });
 
     } catch (error) {
         console.error("Failed to update profile:", error);
-        return { success: false, error: "An unexpected error occurred while updating the profile." };
+        return Err("Error updating profile: " + (error instanceof Error ? error.message : "Unknown error"));
     }
 }
+
+
+
+
 async function startInterviewAndCreateSession(interviewId: string) {
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {

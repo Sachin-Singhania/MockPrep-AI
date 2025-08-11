@@ -30,57 +30,51 @@ export function ProfileSection() {
   }
   const handleSkillUpdate = async (skills: string[]) => {
     try {
-      const { success, error, message } = await updateProfile({ skills });
-      if (success) {
-        toast.success(message)
-        ReplaceSkill(new Set(skills))
+      const res = await updateProfile({ skills });
+      if (!res.ok) {
+        toast.error( `Error: ${res.error || "Failed to update skills"}`);
+        return;
       }
-      if (error) {
-        console.log("HEY")
-        toast.error(message);
-      }
+        toast.success(res.value.message);
+        ReplaceSkill(new Set(skills));
     } catch (error) {
       toast.error("Something went wrong");
     }
   }
   const handleExpUpdate = async (ExpToadd: Experience[], idsToRemove: string[]) => {
     try {
-      const { success, error, message } = await updateProfile({ workExperienceIdsToRemove: idsToRemove, workExperienceToAdd: ExpToadd });
-      if (success) {
-        toast.success(message)
+      const res = await updateProfile({ workExperienceIdsToRemove: idsToRemove, workExperienceToAdd: ExpToadd });
+      if (!res.ok) {
+        toast.error( `Error: ${res.error || "Failed to update Work Experience"}`);
+        return;
+      }
+        toast.success(res.value.message);
         updateWorkExp(ExpToadd);
-      }
-      if (error) {
-        toast.error(message);
-      }
     } catch (error) {
       toast.error("Something went wrong");
     }
   }
   const handleProjectUpdte = async (newProjects: Project[], removedProjectIds: string[]) => {
     try {
-      const { success, error, message } = await updateProfile({ projectIdsToRemove: removedProjectIds, projectsToAdd: newProjects });
-      if (success) {
-        toast.success(message)
+      const res = await updateProfile({ projectIdsToRemove: removedProjectIds, projectsToAdd: newProjects });
+      if (!res.ok) {
+        toast.error( `Error: ${res.error || "Failed to update  Projects"}`);
+        return;
+      }
+        toast.success(res.value.message);
         updateProjects(newProjects);
-      }
-      if (error) {
-        toast.error(message);
-      }
     } catch (error) {
       toast.error("Something went wrong");
     }
   }
   const handleProfileUpdate = async (tagline: string, about: string) => {
     try {
-      const { success, error, message } = await updateProfile({ tagline, about });
-      if (success) {
-        toast.success(message)
-
+      const res = await updateProfile({ tagline, about });
+     if (!res.ok) {
+        toast.error( `Error: ${res.error || "Failed to update profile"}`);
+        return;
       }
-      if (error) {
-        toast.error(message);
-      }
+      toast.success(res.value.message);
     } catch (error) {
       toast.error("Something went wrong");
     }

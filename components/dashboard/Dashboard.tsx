@@ -48,21 +48,21 @@ export function DashboardContent({ toggle }: { toggle(status: boolean): void }) 
       return;
     }
     async function addprofile(userId: string) {
-      const { data, message } = await getProfile(userId);
-      if (!data) {
-        toast.error(message);
+      const res= await getProfile(userId);
+      if (!res.ok) {
+        toast.error( `Error: ${res.error || "Failed to fetch profile"}`);
         return;
       };
-      toast.success(message);
+      toast.success(res.value.message);
       const profile = {
-        profileId: data.Profile?.id,
-        about: data.Profile?.about ? data.Profile?.about : undefined,
-        tagline: data.Profile?.tagline ? data.Profile?.tagline : undefined,
-        interview: data.Interview ?? [],
-        Projects: data.Profile?.Projects ?? [],
-        Skills: new Set(data.Profile?.Skills) ?? [],
-        WorkExperience: data.Profile?.WorkExperience ?? [],
-        activity: data.Activity ?? [] 
+        profileId: res.value?.data?.Profile?.id,
+        about: res.value?.data?.Profile?.about ? res.value?.data?.Profile?.about : undefined,
+        tagline: res.value?.data?.Profile?.tagline ? res.value?.data?.Profile?.tagline : undefined,
+        interview: res.value?.data?.Interview ?? [],
+        Projects: res.value?.data?.Profile?.Projects ?? [],
+        Skills: new Set(res.value?.data?.Profile?.Skills) ?? [],
+        WorkExperience: res.value?.data?.Profile?.WorkExperience ?? [],
+        activity: res.value?.data?.Activity ?? [] 
       }
       setProfile(profile)
     }

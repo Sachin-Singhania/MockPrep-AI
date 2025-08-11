@@ -42,23 +42,22 @@ export default function SignInPage() {
       if (type === "SIGNIN") {
         response = await register(type, email, password);
       }
-      if (response) {
-        if (response.error) {
-          toast.error(response.error ? response.error : "An error occurred");
-          return;
-        } else if (response.data) {
-          console.log(response.data);
-          toast.success("Welcome " + response.data.name ? "Welcome " + response.data.name : "Welcome " + response.data.email);
+      if (response?.ok) {
+        if (response.ok && response.value) {
+          console.log(response.value.data);
+          toast.success("Welcome " + response.value.data.name ? "Welcome " + response.value.data.name : "Welcome " + response.value.data.email);
           const userval = {
-            userId: response.data.id,
-            dashboardId: response.data.dashboards?.id as string,
-            name: response.data.name as string,
-            email: response.data.email as string,
-            profilePic: response.data.image as string
+            userId: response.value.data.id,
+            dashboardId: response.value.data.dashboards?.id as string,
+            name: response.value.data.name as string,
+            email: response.value.data.email as string,
+            profilePic: response.value.data.image as string
           }
           setUser(userval);
           nav.push("/dashboard");
         }
+      }else{
+        toast.error(`Error: ${response?.error || "Failed to register"}`);
       }
     }
   }

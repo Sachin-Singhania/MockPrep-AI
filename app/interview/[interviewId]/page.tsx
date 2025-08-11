@@ -88,10 +88,14 @@ export default function InterviewAnalytics() {
       }
       try {
         const res = await getInterviewDetails(interviewId);
-        if (res.status === 200 && res.data) {
-          const transformedData = transformApiData(res.data, user.name as string);
-          setMockInterviewData(transformedData);
-          addOrUpdateAnalytics(interviewId, transformedData);
+        if(res.ok){
+          if (res.value.status === 200 && res.value.data) {
+            const transformedData = transformApiData(res.value.data, user.name as string);
+            setMockInterviewData(transformedData);
+            addOrUpdateAnalytics(interviewId, transformedData);
+          }
+        }else{
+          toast.error(`Error: ${res.error || "Failed to fetch interview data"}`);
         }
       } catch (err) {
         console.error("Failed to fetch interview data:", err);
