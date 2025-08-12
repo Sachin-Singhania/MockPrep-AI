@@ -5,7 +5,9 @@ import { InterviewSection } from "@/components/dashboard/interview-section"
 import { ProfileSection } from "@/components/dashboard/profile-section"
 import { Button } from "@/components/ui/button"
 import { Briefcase, LogOut, Settings, User } from "lucide-react"
+import { signOut } from "next-auth/react"
 import { useState } from "react"
+import { toast } from "sonner"
 
 type SidebarOption = "dashboard" | "profile" | "interviews"
 
@@ -101,6 +103,14 @@ export default function DashboardPage() {
             <Button
               variant="ghost"
               className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={()=> {
+                signOut({
+                  callbackUrl: "/",
+                  redirect: true,
+                });
+                toast.success("Logged out successfully");
+
+              }}
             >
               <LogOut className="w-5 h-5 mr-3" />
               Logout
