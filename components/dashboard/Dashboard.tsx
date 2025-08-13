@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getProfile } from "@/lib/actions/api"
-import { getTimeDiffInMins } from "@/lib/utils"
+import { getStatus, getTimeDiffInMins, timeAgo } from "@/lib/utils"
 import { useChatStore } from "@/store/store"
 import { Briefcase, Calendar, Clock, Edit, FileText, Mail, Star, User } from "lucide-react"
 import { useSession } from "next-auth/react"
@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import InterviewStats from "./interview/Stats"
+import { JsonObject } from "@prisma/client/runtime/library"
 
 export function DashboardContent({ toggle }: { toggle(status: boolean): void }) {
   const { data: session, status } = useSession();
@@ -221,76 +222,94 @@ export function DashboardContent({ toggle }: { toggle(status: boolean): void }) 
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div>
-                {/* we will add this feature later */}
-                <p className="text-gray-500 text-sm">Feature coming soon...</p>
-              </div>
-              {/* <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Briefcase className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">Frontend Developer Interview</p>
-                  <p className="text-sm text-gray-600">Completed 2 hours ago • Score: 88%</p>
-                </div>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  Excellent
-                </Badge>
-              </div>
-
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">Resume Updated</p>
-                  <p className="text-sm text-gray-600">Updated 1 day ago</p>
-                </div>
-                <Badge variant="outline">Complete</Badge>
-              </div>
-
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
-                  <Star className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">Skill Assessment Completed</p>
-                  <p className="text-sm text-gray-600">JavaScript • Advanced Level</p>
-                </div>
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                  Advanced
-                </Badge>
-              </div>
-
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">Interview Scheduled</p>
-                  <p className="text-sm text-gray-600">Backend Engineer • Tomorrow 2:00 PM</p>
-                </div>
-                <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-200">
-                  Upcoming
-                </Badge>
-              </div>
-
-              <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium">Profile Viewed</p>
-                  <p className="text-sm text-gray-600">By TechCorp Recruiter • 3 days ago</p>
-                </div>
-                <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
-                  New
-                </Badge>
-              </div> */}
+              {
+                profile?.activity && profile.activity.length > 0 ? (
+                  profile.activity.map((activity, index) => (
+                 <ActivityItem activity={activity} key={index} />
+                  ))
+                ) : (
+                  <p className="text-gray-500 flex justify-center items-center w-full">No recent activity found.</p>
+                )
+              }
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
   )
+}
+
+
+function ActivityItem({ activity }: { activity: any}) {
+  const content = activity.content as JsonObject;
+  switch (activity.type) {
+    case "INTERVIEW": {
+      const { interviewId, jobTitle, overallScore, date } = content as {
+        interviewId: string;
+        jobTitle: string;
+        overallScore: number;
+        date: string;
+      };
+      const nav= useRouter();
+      const dateObj = new Date(date);
+      const time = timeAgo(dateObj);
+      return (
+         <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{jobTitle}</p>
+                        <p className="text-sm text-gray-600" onClick={
+                          () => {
+                            nav.push(`interview/${ interviewId}`);
+                          }
+                        }>{"Comleted "+ time} • Score : {overallScore}</p>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        {getStatus(overallScore).status}
+                      </Badge>
+                    </div>
+      );
+    }
+    case "DASHBOARD_CREATED":{
+      const {date } = content as {
+        date: string;
+      };
+      return (
+        <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                 <div className="w-10 h-10 bg-indigo-500 rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">Dashboard Created</p>
+                  <p className="text-sm text-gray-600">{"Created " + timeAgo(new Date(date))}</p>
+                </div>
+                <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
+                  New
+                </Badge>
+              </div>
+      );
+    }
+
+    case "PROFILE_UPDATED":{
+      const {date } = content as {
+        date: string;
+      };
+      return (
+        <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">Profile Updated</p>
+                  <p className="text-sm text-gray-600">{"Updated " + timeAgo(new Date(date))}</p>
+                </div>
+                <Badge variant="outline">Complete</Badge>
+              </div>
+      );
+    }
+    default:
+      return null;
+  }
 }

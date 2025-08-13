@@ -9,7 +9,17 @@ import { prisma } from "../prisma";
 import { redis } from "../redis";
 import { uuidv4 } from "../utils";
 
+type Ok<T> = T extends void ? { ok: true } : { ok: true; value: T };
 
+type Err<E> = {
+  ok: false;
+  error: E;
+};
+const Ok = <T>(value?: T extends void ? void : T): Ok<T> => {
+  return (typeof value === 'undefined' ? { ok: true } : { ok: true, value }) as Ok<T>;
+};
+const Err = <E>(error: E): Err<E> => ({ ok: false, error });
+type Result<T, E = string> = Ok<T> | Err<E>;
 export async function getProfile(userId: string) : Promise<Result<{ message: string; data: ProfileResult | null },string>> {
     try {
         const resp = await prisma.dashboard.findFirst({
