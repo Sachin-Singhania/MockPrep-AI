@@ -69,7 +69,10 @@ export async function getProfile(userId: string) : Promise<Result<{ message: str
                     select: {
                         type: true,
                         content: true,
-                    }
+                    },orderBy:{
+                        createdAt : 'desc',
+                        
+                    },take : 6
                 },id : true,
                 createdAt: true,
             }
@@ -462,9 +465,6 @@ export async function updateProfile(payload: UpdateProfilePayload) : Promise<Res
         return Err("Error updating profile: " + (error instanceof Error ? error.message : "Unknown error"));
     }
 }
-
-
-
 
 async function startInterviewAndCreateSession(interviewId: string) {
     const data = await getServerSession(authOptions);

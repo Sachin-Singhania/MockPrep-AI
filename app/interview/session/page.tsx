@@ -1,19 +1,18 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Textarea } from "@/components/ui/textarea"
-import { Mic, MicOff, Video, VideoOff, Phone, Settings, Send, Bot, User, Clock } from "lucide-react"
-import { useChatStore } from "@/store/store"
-import { analytics, InterviewTaking } from "@/lib/actions/rag"
-import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { LoadingBubble } from "@/components/ui/LoadingBubble"
-import { uuidv4 } from "@/lib/utils"
-import { toast } from "sonner"
+import { ChatContent } from "@/components/dashboard/interview/ChatSection"
 import { AnalyticsGenerationDialog } from "@/components/ui/AnalyticsGen"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { analytics, InterviewTaking } from "@/lib/actions/rag"
+import { formatTime, uuidv4 } from "@/lib/utils"
+import { useChatStore } from "@/store/store"
+import { Clock, MessageSquareIcon, Mic, MicOff, Phone, Settings, User, Video, VideoOff } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition'
+import { toast } from "sonner"
 
 export default function InterviewSessionPage() {
   const searchParams = useSearchParams()
@@ -25,9 +24,8 @@ export default function InterviewSessionPage() {
   const [isVideoOff, setIsVideoOff] = useState(false)
   const [message, setMessage] = useState("")
   const [isBlock, setisBlock] = useState(false)
-  const router = useRouter();
   const [loading, setloading] = useState(false);
-  const { interview, addOrUpdateAnalytics, addInterviewMessage, questions, addInterviewQuestion, updateInterviewQuestion, SetInterviewNull, updateProfileInterview } = useChatStore();
+  const { interview, addOrUpdateAnalytics, addInterviewMessage, questions, addInterviewQuestion, updateInterviewQuestion, SetInterviewNull, updateProfileInterview,user } = useChatStore();
   const [fromTranscription, setFromTranscription] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -63,7 +61,7 @@ export default function InterviewSessionPage() {
     if (sent) return;
     if (!interview) {
       toast.error("No interview data provided")
-      router.replace("/dashboard");
+      nav.replace("/dashboard");
     } else {
       const runFirstMessage = () => {
         try {
@@ -144,11 +142,7 @@ export default function InterviewSessionPage() {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
-  }
+  
   const firstMessage = async () => {
     if (!interview?.id) return;
     const newMessage: InterviewChat = {
@@ -163,8 +157,8 @@ export default function InterviewSessionPage() {
     setisBlock(false);
   }
   const sendMessage = async (inputText?: string) => {
-    const finalMessage = inputText ?? message;
-    if (finalMessage.trim() == "") {
+    const finalMessage = typeof inputText === "string" ? inputText ?? message : message.trim();
+    if (finalMessage?.trim() == "") {
       setisBlock(false);
       return;
     }
@@ -238,7 +232,7 @@ export default function InterviewSessionPage() {
           if (AiResponse.ContentType === "END") {
             endInterview();
           }
-          router.push('/login');
+          nav.push('/login');
           return;
         }
         if (res.status === 429) {
@@ -325,7 +319,11 @@ export default function InterviewSessionPage() {
     handleClick(AiResponse);
   }
   const endInterview = async () => {
-    if (!interview) return;
+    if (!interview) {
+      toast.error("No interview data provided");
+      nav.push("/dashboard");
+      return;
+    }
     try {
       setInterviewhasEnd(true);
       let end = new Date();
@@ -355,13 +353,15 @@ export default function InterviewSessionPage() {
       setInterviewhasEnd(false);
     }
   }
+const [showChat, setShowChat] = useState(false)
 
-  return (
+   return (
     <>
       {InterviewhasEnd && (
         <AnalyticsGenerationDialog isOpen={InterviewhasEnd} />
       )}
-      <div className="min-h-screen bg-gray-900 flex">
+
+      <div className="min-h-screen bg-gray-900 flex relative">
         {/* Video Area */}
         <div className="flex-1 relative">
           {/* Header */}
@@ -386,7 +386,9 @@ export default function InterviewSessionPage() {
             {isVideoOff ? (
               <div className="text-center">
                 <Avatar className="w-32 h-32 mx-auto mb-4">
-                  <AvatarFallback className="bg-gray-600 text-white text-4xl">JD</AvatarFallback>
+                  <AvatarFallback className="bg-gray-600 text-white text-4xl">
+                    JD
+                  </AvatarFallback>
                 </Avatar>
                 <p className="text-white text-lg">Camera is off</p>
               </div>
@@ -396,7 +398,7 @@ export default function InterviewSessionPage() {
                   <div className="w-32 h-32 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center">
                     <User className="w-16 h-16" />
                   </div>
-                  <p className="text-lg">Your video feed</p>
+                  <p className="text-lg">{user?.name}</p>
                 </div>
               </div>
             )}
@@ -405,30 +407,47 @@ export default function InterviewSessionPage() {
           {/* Controls */}
           <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
             <div className="flex items-center space-x-4 bg-black/80 backdrop-blur-sm rounded-full px-6 py-3">
+              {/* Mic Toggle */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleRecording}
                 disabled={InterviewhasEnd}
-                className={`rounded-full w-12 h-12 ${!listening && isBlock
+                className={`rounded-full w-12 h-12 ${
+                  !listening && isBlock
                     ? "bg-red-500 hover:bg-red-600"
                     : listening && !isBlock
-                      ? "bg-gray-600 hover:bg-gray-700"
-                      : "bg-gray-700 hover:bg-gray-800"
-                  } text-white`}
+                    ? "bg-gray-600 hover:bg-gray-700"
+                    : "bg-gray-700 hover:bg-gray-800"
+                } text-white`}
               >
-                {listening && !isBlock ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                {listening && !isBlock ? (
+                  <Mic className="w-5 h-5" />
+                ) : (
+                  <MicOff className="w-5 h-5" />
+                )}
               </Button>
+
+              {/* Video Toggle */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsVideoOff(!isVideoOff)}
                 disabled={InterviewhasEnd}
-                className={`rounded-full w-12 h-12 ${isVideoOff ? "bg-red-500 hover:bg-red-600" : "bg-gray-600 hover:bg-gray-700"} text-white`}
+                className={`rounded-full w-12 h-12 ${
+                  isVideoOff
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-gray-600 hover:bg-gray-700"
+                } text-white`}
               >
-                {(isVideoOff! && InterviewhasEnd) || isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                {(isVideoOff! && InterviewhasEnd) || isVideoOff ? (
+                  <VideoOff className="w-5 h-5" />
+                ) : (
+                  <Video className="w-5 h-5" />
+                )}
               </Button>
 
+              {/* Settings */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -437,6 +456,7 @@ export default function InterviewSessionPage() {
                 <Settings className="w-5 h-5" />
               </Button>
 
+              {/* End Call */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -445,92 +465,77 @@ export default function InterviewSessionPage() {
               >
                 <Phone className="w-5 h-5" />
               </Button>
+
+              {/* Mobile Chat Toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowChat(true)}
+                className="rounded-full w-12 h-12 bg-gray-600 hover:bg-gray-700 text-white md:hidden"
+              >
+                <MessageSquareIcon className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Chat Panel */}
-        <div className="w-96 bg-white flex flex-col h-screen">
-          {/* Chat Header */}
-          <div className="p-4 border-b bg-gray-50">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Interview Conversation</h3>
-                <p className="text-sm text-gray-600">AI Interviewer</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesContainerRef}>
-            {interview?.InterviewChatHistory?.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.Sender === "USER" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%] ${msg.Sender === "USER" ? "order-2" : "order-1"}`}>
-                  <div
-                    className={`flex items-start space-x-2 ${msg.Sender === "USER" ? "flex-row-reverse space-x-reverse" : ""}`}
-                  >
-                    <Avatar className="w-8 h-8">
-                      {msg.Sender === "ASSISTANT" ? (
-                        <AvatarFallback className="bg-blue-600 text-white">
-                          <Bot className="w-4 h-4" />
-                        </AvatarFallback>
-                      ) : (
-                        <AvatarFallback className="bg-gray-600 text-white">
-                          <User className="w-4 h-4" />
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-
-                    <div
-                      className={`rounded-lg px-3 py-2 max-w-xs ${msg.Sender === "USER"
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-100 text-gray-900"
-                        }`}
-                    >
-                      <p className="text-sm">{msg.Content}</p>
-                    </div>
-                  </div>
+        {/* Desktop Chat Panel */}
+        <div className="w-96 bg-white flex-col h-screen hidden md:flex">
+           <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <MessageSquareIcon className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Interview Conversation</h3>
+                  <p className="text-sm text-gray-600">AI Interviewer</p>
                 </div>
               </div>
-            ))}
-            {loading &&
-              <LoadingBubble />
-            }
-          </div>
-
-          {/* Message Input */}
-          <div className="p-4 border-t">
-            <div className="flex space-x-2">
-              <Textarea
-                placeholder="Type your response..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                className="flex-1 min-h-[60px] resize-none"
-                onKeyUp={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault()
-                    sendMessage()
-                  }
-                }}
-              />
-              <div className="flex flex-col space-y-2">
-                <Button
-                  onClick={() => sendMessage}
-                  disabled={!message.trim()}
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
             </div>
-          </div>
+          <ChatContent
+            interview={interview}
+            messagesContainerRef={messagesContainerRef}
+            loading={loading}
+            message={message}
+            setMessage={setMessage}
+            sendMessage={sendMessage}
+          />
         </div>
+
+        {/* Mobile Chat Overlay */}
+        {showChat && (
+          <div className="absolute inset-0 bg-white flex flex-col z-50 md:hidden">
+            <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <MessageSquareIcon className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Interview Conversation</h3>
+                  <p className="text-sm text-gray-600">AI Interviewer</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowChat(false)}
+                className="text-gray-600"
+              >
+                Close
+              </Button>
+            </div>
+
+            <ChatContent
+              interview={interview}
+              messagesContainerRef={messagesContainerRef}
+              loading={loading}
+              message={message}
+              setMessage={setMessage}
+              sendMessage={sendMessage}
+            />
+          </div>
+        )}
       </div>
     </>
   )
 }
-

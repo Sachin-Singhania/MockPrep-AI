@@ -97,49 +97,8 @@ export function timeAgo(date: Date) {
   if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
   return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
 }
-//   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-//   const audioChunksRef = useRef<Blob[]>([])
-// const toggleRecording = async () => {
-//   if (isRecording) {
-//     mediaRecorderRef.current?.stop()
-//     setIsRecording(false)
-//   } else {
-//     try {
-//    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-//     const mediaRecorder = new MediaRecorder(stream);
-//     mediaRecorderRef.current = mediaRecorder;
-//     audioChunksRef.current = [];
-
-//     mediaRecorder.ondataavailable = (event) => {
-//       if (event.data.size > 0) {
-//         audioChunksRef.current.push(event.data);
-//       }
-//     };
-
-//     mediaRecorder.onstop = async () => {
-//       const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-//       console.log("HELLO");
-//       const formData = new FormData();
-//       formData.append("file", audioBlob);
-//       formData.append("model_id", "scribe_v1");
-
-//       const res = await transcribeAudio(formData);
-//       setIsRecording(false);
-//       setisBlock(true);
-//         const text = res?.text?.trim();
-//         if (text) {
-//       setFromTranscription(true);
-//       setMessage(text);
-//     }
-//       console.log(res.text);
-//       console.log(message);
-//       await sendMessage();
-//     };
-
-//     mediaRecorder.start();
-//     setIsRecording(true);
-//     } catch (error) {
-//       console.log(error);
-//     }
-//   }
-// }
+export const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  }

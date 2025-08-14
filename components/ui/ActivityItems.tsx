@@ -1,7 +1,7 @@
 import { getStatus, timeAgo } from "@/lib/utils";
 import { JsonObject } from "@prisma/client/runtime/library";
 import { Briefcase, FileText, User } from "lucide-react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import { Badge } from "./badge";
 
 export function ActivityItem({ activity }: { activity: any}) {
@@ -24,13 +24,13 @@ export function ActivityItem({ activity }: { activity: any}) {
                       </div>
                       <div className="flex-1">
                         <p className="font-medium">{jobTitle}</p>
-                        <p className="text-sm text-gray-600" onClick={
+                        <p className="text-sm text-gray-600" >{"Comleted "+ time} • Score : {overallScore}</p>
+                      </div>
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 cursor-pointer" onClick={
                           () => {
                             nav.push(`interview/${ interviewId}`);
                           }
-                        }>{"Comleted "+ time} • Score : {overallScore}</p>
-                      </div>
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                        }>
                         {getStatus(overallScore).status}
                       </Badge>
                     </div>
