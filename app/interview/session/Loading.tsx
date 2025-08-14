@@ -1,3 +1,4 @@
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function Loading() {
   return (
@@ -5,10 +6,5 @@ export default function Loading() {
       <Spinner />
       <p className="mt-4 text-gray-600">Loading interview session...</p>
     </div>
-  );
-}
-function Spinner() {
-  return (
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
   );
 }

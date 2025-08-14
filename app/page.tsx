@@ -1,6 +1,6 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { Briefcase, Clock, Star, Zap, BarChart3, FileText, Video, User, TrendingUp } from "lucide-react"
+import { BarChart3, Briefcase, Clock, FileText, Star, TrendingUp, User, Video, Zap } from "lucide-react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"

@@ -8,9 +8,9 @@ import { useChatStore } from "@/store/store"
 import { Briefcase, Calendar, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 import DialogBox from "./interview/Dialog"
 import InterviewStats from "./interview/Stats"
-import { toast } from "sonner"
 
 
 export function InterviewSection() {

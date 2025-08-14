@@ -1,14 +1,13 @@
 "use client"
-import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
-import { Eye, EyeOff } from "lucide-react"
-import { signIn } from "next-auth/react"
 import { register } from "@/lib/actions/api"
 import { useChatStore } from "@/store/store"
+import { Eye, EyeOff } from "lucide-react"
+import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { toast } from "sonner"
 
 export default function SignInPage() {

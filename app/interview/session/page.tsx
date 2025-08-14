@@ -29,6 +29,7 @@ export default function InterviewSessionPage() {
   const [fromTranscription, setFromTranscription] = useState(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+const [showChat, setShowChat] = useState(false)
 
   const { transcript, resetTranscript, listening } = useSpeechRecognition();
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function InterviewSessionPage() {
         if (prev <= 1) {
           clearInterval(timer)
           setInterviewhasEnd(true)
+          toast.error("Time is up! Ending the interview.")
           endInterview();
           return 0;
         }
@@ -131,7 +133,10 @@ export default function InterviewSessionPage() {
 
 
   const toggleRecording = () => {
-    if (isBlock) return;
+    if (isBlock) {
+      toast.info ("Please wait for the assistance to complete.");
+      return;
+    };
     if (listening) {
       SpeechRecognition.stopListening();
       setisBlock(true);
@@ -144,7 +149,11 @@ export default function InterviewSessionPage() {
 
   
   const firstMessage = async () => {
-    if (!interview?.id) return;
+    if (!interview?.id) {
+      toast.error("No interview data provided");
+      nav.push("/dashboard");
+      return;
+    }
     const newMessage: InterviewChat = {
       id: uuidv4(),
       Sender: "ASSISTANT",
@@ -353,7 +362,6 @@ export default function InterviewSessionPage() {
       setInterviewhasEnd(false);
     }
   }
-const [showChat, setShowChat] = useState(false)
 
    return (
     <>

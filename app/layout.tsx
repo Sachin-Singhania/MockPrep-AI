@@ -1,9 +1,9 @@
-import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import type React from "react"
+import { Toaster } from "sonner"
 import "./globals.css"
 import AuthProvider from "./provider"
-import { Toaster } from "sonner"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {

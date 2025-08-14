@@ -1,7 +1,7 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
-import { Briefcase, Calendar, Clock, Star } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card";
+import { Briefcase, Calendar, Clock, Star } from "lucide-react";
 export default function InterviewStats({
   stats,
 }: {

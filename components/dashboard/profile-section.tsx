@@ -4,16 +4,16 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { updateProfile } from "@/lib/actions/api"
 import { ResumeExtracter } from "@/lib/actions/rag"
 import { useChatStore } from "@/store/store"
 import { FileText, Sparkles, Upload } from "lucide-react"
 import { useRef, useState } from "react"
+import { toast } from "sonner"
 import ProfileCard from "./Profile/Profile"
 import ProjectCard from "./Profile/Project"
 import SkillCard from "./Profile/Skill"
 import Exp from "./Profile/Work"
-import { toast } from "sonner"
-import { updateProfile } from "@/lib/actions/api"
 
 
 export function ProfileSection() {
