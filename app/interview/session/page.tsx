@@ -213,11 +213,11 @@ const [showChat, setShowChat] = useState(false)
         const lastQuestionId = questions?.length ? questions[questions.length - 1].id : "";
         if (lastQuestionId) updateInterviewQuestion(lastQuestionId, aires.score);
       }
-      PlayAudioButton(aires);
+     await PlayAudioButton(aires);
       setisBlock(false);
     }
   }
-  function PlayAudioButton(AiResponse: InterviewChat) {
+  async function PlayAudioButton(AiResponse: InterviewChat) {
     const handleClick = async (AiResponse: InterviewChat) => {
       const res = await fetch(`/api/speak`, {
         method: "POST",
@@ -287,7 +287,7 @@ const [showChat, setShowChat] = useState(false)
             if (done) break;
             if (value) chunks.push(value);
           }
-
+          //@ts-ignore
           const finalBuffer = new Blob(chunks, { type: "audio/mpeg" });
           const arrayBuffer = await finalBuffer.arrayBuffer();
 
@@ -325,7 +325,7 @@ const [showChat, setShowChat] = useState(false)
         console.error("Audio play error:", err);
       }
     };
-    handleClick(AiResponse);
+    await handleClick(AiResponse);
   }
   const endInterview = async () => {
     if (!interview) {

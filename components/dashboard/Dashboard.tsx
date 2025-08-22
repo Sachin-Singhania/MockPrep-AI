@@ -84,11 +84,11 @@ export function DashboardContent({ toggle }: { toggle(status: boolean): void }) 
 
     const totalMinutes = interivews.reduce((acc, curr) => acc + getTimeDiffInMins(new Date(curr.startTime), new Date(curr.endTime!)), 0);
     const totalHours = (totalMinutes / 60).toFixed(1);
-    const successRate =
+    const successRate =parseFloat((
       interivews.filter(
         (interview) =>
           (interview.Analytics?.overallScore ?? 0) >= 65
-      ).length / interivews.length;
+      ).length / interivews.length).toFixed(2))+10;
 
     return { totalCount, averageScore, successRate, totalHours: `${totalHours}h` };
   }, [profile?.interview]);
@@ -220,7 +220,7 @@ export function DashboardContent({ toggle }: { toggle(status: boolean): void }) 
             <CardTitle>Recent Activity</CardTitle>
             <CardDescription>Your latest interview sessions and achievements</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-y-auto max-h-96">
             <div className="space-y-4">
               {
                 profile?.activity && profile.activity.length > 0 ? (

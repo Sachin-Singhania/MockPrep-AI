@@ -135,8 +135,9 @@ export async function InterviewTaking(interviewDetails: interviewDetails, timeLe
         3 . Once You ask a QUESTION user will send a ANSWER then you will send a VALIDATION (QUESTION(by you)-> ANSWER(by user) ->VALIDATION(by you with score))
         4. You are given a message which includes chats of last three message understand the intent of the message then reply
         Output Format :- 
-            {ContentType:"FORMALCHAT | QUESTION | VALIDATION | END"  , Content : string , score?: number}
+            {ContentType:"FORMALCHAT | QUESTION | VALIDATION | END"  , Content : string , score?: number ,topic? : string}
             score will be only in type VALIDATION , give score out of 100
+            topic will be only in type Quesition , topic will be short like and 2 word summary of the question asked for example hook management , context api , nodejs , event loop 
 
         Example 
             name : John Doe
@@ -170,6 +171,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails, timeLe
             ...parse,
             Sender: "ASSISTANT"
         }
+        console.log(data);
         return {
             status: true,
             data: data
@@ -190,7 +192,7 @@ export async function analytics(interviewDetails: interviewDetails, questions: q
         let duration = (end.getTime() - start.getTime()) / 1000;
         const answer = interviewDetails.InterviewChatHistory.filter((val) => val.ContentType == "ANSWER");
         let questionPerformance = questions.filter((val) => val.score != undefined);
-
+        console.log( questionPerformance);
         const technicalKeywords = await getTechnicalKeywords(answer);
         const InterviewScores = Object.values(technicalKeywords.InterviewScores);
         const overallScore = InterviewScores.reduce((a, b) => a + b, 0) / InterviewScores.length;
@@ -205,6 +207,7 @@ export async function analytics(interviewDetails: interviewDetails, questions: q
             ...technicalKeywords,
         };
         await setInterviewDetails(interviewData, interviewDetails, end)
+        console.log(interviewData);
         return interviewData;
     } catch (error) {
         console.error(error);
@@ -244,7 +247,7 @@ async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewI
                `
 
     const model = ai.getGenerativeModel({
-        model: "gemini-2.5-pro",
+        model: "gemini-1.5-flash",
         generationConfig: {
             temperature: 0.8,
             responseMimeType: "application/json",

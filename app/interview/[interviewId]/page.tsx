@@ -55,7 +55,7 @@ export default function InterviewAnalytics() {
 
   const { allAnalytics, user, addOrUpdateAnalytics } = useChatStore();
   const [mockInterviewData, setMockInterviewData] = useState<InterviewData | null>(null);
-
+  console.log(mockInterviewData);
   const radarData = useMemo(() => {
     if (!mockInterviewData?.InterviewScores) return [];
 
@@ -148,7 +148,7 @@ export default function InterviewAnalytics() {
                 Back to Dashboard
               </Button>
             </Link>
-            <div className="flex gap-3">
+            {/* <div className="flex gap-3">
               <Button variant="outline" size="sm" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
@@ -157,7 +157,7 @@ export default function InterviewAnalytics() {
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
-            </div>
+            </div> */}
           </div>
 
           <div className="text-center text-white">
@@ -309,7 +309,7 @@ export default function InterviewAnalytics() {
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="question" />
+                    <XAxis dataKey="topic" />
                     <YAxis domain={[0, 100]} />
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: "transparent" }} />
                     <Bar dataKey="score" radius={[8, 8, 0, 0]}>
@@ -333,7 +333,7 @@ export default function InterviewAnalytics() {
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: colors[index % colors.length] }}
                         ></div>
-                        <span className="font-medium">{q.question}</span>
+                        <span className="font-medium">Q{index+1}</span>
                         <span className="text-sm text-slate-600 dark:text-slate-400">{q.topic}</span>
                       </div>
                       <div className="flex items-center gap-2">

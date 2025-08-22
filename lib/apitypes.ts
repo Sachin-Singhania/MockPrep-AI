@@ -75,7 +75,7 @@ export type InterviewResult = Prisma.AnalyticsGetPayload<{
     questions: {
       select: {
         id: true,
-        question: true,
+        topic: true,
         score: true,
       }
     },

@@ -112,7 +112,7 @@ export async function getInterviewDetails(interviewId: string) : Promise<Result<
             RelevanceScore: true, questions: {
                 select: {
                     id: true,
-                    question: true,
+                    topic: true,
                     score: true,
                 }
             }, Interview: {
@@ -137,6 +137,7 @@ export async function getInterviewDetails(interviewId: string) : Promise<Result<
 
 export async function setInterviewDetails(interviewData: InterviewData, interviewDetails: interviewDetails, endTime: Date) : Promise<Result<{ message: string; status: number },string>> {
     try {
+        console.log(interviewData,interviewDetails)
         await prisma.interview.update({
             where: { id: interviewDetails.id },
             data: {
@@ -175,7 +176,8 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
                         questions: {
                             createMany: {
                                 data: interviewData.questionPerformance.map((question) => ({
-                                    question: question.topic,
+                                    topic: question.topic,
+                                    question : question.question ? question.question : "Question Not found",
                                     score: question.score ? question.score : 0, id: question.id
                                 })),
                             }

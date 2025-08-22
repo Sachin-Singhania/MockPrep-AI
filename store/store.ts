@@ -134,9 +134,10 @@ export const useChatStore = create<MockPrep>((set, get) => ({
     })
   },addInterviewQuestion(question) {
     set((state) => {
+      if (question.ContentType !== "QUESTION") return state;
       const add:questionPerformance = {
-        question : `Q${state.questions && state.questions.length>0 ? state.questions.length+1 : 1}`,
-        topic : question.Content,
+        question : question.Content,
+        topic : question.topic ? question.topic : question.Content,
         id : question.id,
       }
       if (!state.interview) return state;

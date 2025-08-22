@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
@@ -15,141 +9,164 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String?
-  email     String  @unique
-  password  String?
-  googleID    String? @unique
-  tokenExpiry        DateTime?  
-  image     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  dashboards Dashboard?
-  limit      Int?      @default(5)// 5 interview per user
-  isAllowed  Boolean @default(false) 
+  id          String     @id @default(uuid())
+  name        String?
+  email       String     @unique
+  googleID    String?    @unique
+  tokenExpiry DateTime?
+  image       String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  limit       Int?       @default(5)
+  password    String?
+  isAllowed   Boolean    @default(false)
+  dashboards  Dashboard?
 }
-model Dashboard{
-  id        String   @id @default(uuid())
-  Profile Profile?
+
+model Dashboard {
+  id        String           @id @default(uuid())
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  userId    String           @unique
+  user      User             @relation(fields: [userId], references: [id])
   Interview Interview[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String @unique
-  user      User     @relation(fields: [userId], references: [id])
-  Activity RecentActivity[]
+  Profile   Profile?
+  Activity  RecentActivity[]
 
   @@index([userId])
 }
+
 model Profile {
-  id        String   @id @default(uuid())
-  tagline   String?
-  about     String?
-  Skills  String[]
+  id             String     @id @default(uuid())
+  tagline        String?
+  about          String?
+  Skills         String[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  dashboardId    String     @unique
+  dashboard      Dashboard  @relation(fields: [dashboardId], references: [id])
+  Projects       Project[]
   WorkExperience WorkInfo[]
-  Projects Project[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  dashboardId String @unique
-  dashboard Dashboard @relation(fields: [dashboardId], references: [id])
 
   @@index([dashboardId])
 }
-model Project{
-  id   String   @id @default(uuid())
-  name String
-  description String
-  profileId String
-  Profile Profile  @relation(fields: [profileId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-   @@index([ profileId])
-}
-model WorkInfo{
-  id   String   @id @default(uuid())
-  company String
-  role   String
-  startYear  Int
-  endYear   Int? 
-  profileId String
-  Profile Profile  @relation(fields: [profileId], references: [id])
-
-
-   @@index([ profileId])
-}
-
-model Interview{
-  id        String   @id @default(uuid())
-  Jobtitle     String
-  description String
-  difficulty Level
-  skills String
-  experience String
-  status    Status
-  startTime DateTime @default(now())
-  Messages Message[]
-  endTime   DateTime?
-  Analytics Analytics?
-  dashboardId String
-  Dashboard Dashboard @relation(fields: [dashboardId], references: [id])
-   @@index([ dashboardId])
-}
-model Message {
+model Project {
   id          String   @id @default(uuid())
-  interviewId      String
-  Interview        Interview     @relation(fields: [interviewId], references: [id])
-  content     String
-  Sender      Sender 
-  type QuestionType
+  name        String
+  description String
+  profileId   String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  Profile     Profile  @relation(fields: [profileId], references: [id])
+
+  @@index([profileId])
 }
+
+model WorkInfo {
+  id        String  @id @default(uuid())
+  company   String
+  role      String
+  startYear Int
+  endYear   Int?
+  profileId String
+  Profile   Profile @relation(fields: [profileId], references: [id])
+
+  @@index([profileId])
+}
+
+model Interview {
+  id          String     @id @default(uuid())
+  Jobtitle    String
+  description String
+  difficulty  Level
+  skills      String
+  experience  String
+  status      Status
+  startTime   DateTime   @default(now())
+  endTime     DateTime?
+  dashboardId String
+  Analytics   Analytics?
+  Dashboard   Dashboard  @relation(fields: [dashboardId], references: [id])
+  Messages    Message[]
+
+  @@index([dashboardId])
+}
+
+model Message {
+  id          String       @id @default(uuid())
+  interviewId String
+  content     String
+  Sender      Sender
+  type        QuestionType
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  Interview   Interview    @relation(fields: [interviewId], references: [id])
+}
+
+model Analytics {
+  id                  String     @id @default(uuid())
+  interviewId         String     @unique
+  CommunicationScore  Int
+  TechnicalScore      Int
+  ProblemSolvingScore Int
+  RelevanceScore      Int
+  VocabularyScore     Int
+  TechnicalKeywords   String[]
+  KeyStrengths        String[]
+  GrowthAreas         String[]
+  InterviewSummary    String
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  overallScore        Int
+  Interview           Interview  @relation(fields: [interviewId], references: [id])
+  HRInsight           HrInsight?
+  questions           Question[]
+}
+
+model Question {
+  id          String    @id @default(uuid())
+  question    String
+  AnalyticsId String
+  score       Int?
+  topic       String
+  Analytics   Analytics @relation(fields: [AnalyticsId], references: [id])
+}
+
+model HrInsight {
+  id                     String    @id @default(uuid())
+  TechnicalCompetency    String
+  ExperienceLevel        String
+  CulturalFit            String
+  LearningPotential      String
+  InterviewReadlineScore Int
+  AnalyticsId            String    @unique
+  Analytics              Analytics @relation(fields: [AnalyticsId], references: [id])
+}
+
+model RecentActivity {
+  id          String             @id @default(uuid())
+  dashboardId String
+  type        RecentActivityType
+  content     Json
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  Dashboard   Dashboard          @relation(fields: [dashboardId], references: [id])
+
+  @@index([dashboardId, type])
+}
+
 enum Sender {
   USER
   ASSISTANT
 }
-model Analytics {
-  id        String   @id @default(uuid())
-  interviewId String @unique
-  Interview Interview @relation(fields: [interviewId], references: [id])
-  overallScore Int
-  CommunicationScore Int
-  TechnicalScore Int
-  ProblemSolvingScore Int
-  RelevanceScore Int
-  VocabularyScore Int
-  TechnicalKeywords String[]
-  KeyStrengths String[]
-  GrowthAreas String[]
-  questions Question[]
-  HRInsight HrInsight?
-  InterviewSummary String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-}
-model Question{
-  id        String   @id @default(uuid())
-  question String 
-  score Int?
-  AnalyticsId String 
-  Analytics Analytics @relation(fields: [AnalyticsId], references: [id])
-}
-model HrInsight{
-  id        String   @id @default(uuid())
-  TechnicalCompetency String
-  ExperienceLevel String
-  CulturalFit String
-  LearningPotential String
-  InterviewReadlineScore Int
-  AnalyticsId String @unique
-  Analytics Analytics @relation(fields: [AnalyticsId], references: [id])
-}
 enum Level {
   BEGINNER
   INTERMEDIATE
   ADVANCED
 }
+
 enum QuestionType {
   QUESTION
   ANSWER
@@ -162,18 +179,9 @@ enum Status {
   IN_PROGRESS
   COMPLETED
 }
-model RecentActivity {
-  id        String   @id @default(uuid())
-  dashboardId    String
-  Dashboard Dashboard @relation(fields: [dashboardId], references: [id])
-  type      RecentActivityType
-  content      Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([dashboardId,type])
-}
+
 enum RecentActivityType {
-  INTERVIEW 
-  PROFILE_UPDATED 
-  DASHBOARD_CREATED 
+  INTERVIEW
+  PROFILE_UPDATED
+  DASHBOARD_CREATED
 }

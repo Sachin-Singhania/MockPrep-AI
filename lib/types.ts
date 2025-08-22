@@ -54,8 +54,15 @@ type InterviewChat =
     id?: string
     Sender: "USER" | "ASSISTANT";
     Content: string;
-    ContentType: "ANSWER" | "FORMALCHAT" | "QUESTION" | "END";
-  };
+    ContentType: "ANSWER" | "FORMALCHAT" | "END";
+  } | {
+    id?: string
+    Sender: "ASSISTANT";
+    Content: string;
+    ContentType: "QUESTION";
+    topic: string;
+  }
+  ;
 interface InterviewData extends InterviewInsights {
   date: Date
   candidateName: string;
@@ -66,7 +73,7 @@ interface InterviewData extends InterviewInsights {
 }
 type questionPerformance = {
   id?: string
-  question: string;
+  question?: string;
   score?: number;
   topic: string;
   status?: string;

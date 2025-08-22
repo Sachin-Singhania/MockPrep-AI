@@ -73,10 +73,9 @@ export const transformApiData = (apiData: any, userName: string): InterviewData 
     },
     overallScore,
     position: Interview.Jobtitle,
-    questionPerformance: questions.map((val: any, index: number) => ({
-      question: `Q${index + 1}`,
+    questionPerformance: questions.map((val: any) => ({
       score: val.score,
-      topic: val.question,
+      topic: val.topic,
       status: getStatus(val.score).status,
     })),
     strengths: KeyStrengths,
