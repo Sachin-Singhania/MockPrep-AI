@@ -90,7 +90,7 @@ const [showChat, setShowChat] = useState(false)
 
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        alert("Tab switch is not allowed during the interview.");
+        // alert("Tab switch is not allowed during the interview.");
       }
     };
 
@@ -101,18 +101,18 @@ const [showChat, setShowChat] = useState(false)
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
       if (isCtrlOrCmd && blockedKeys.includes(e.key.toLowerCase())) {
         e.preventDefault();
-        alert("Keyboard shortcuts are disabled during the interview.");
+        // alert("Keyboard shortcuts are disabled during the interview.");
       }
 
       if (e.key === "Escape") {
         e.preventDefault();
-        alert("Exiting fullscreen is not allowed.");
+        // alert("Exiting fullscreen is not allowed.");
       }
     };
 
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement) {
-        alert("You exited fullscreen. Interview will now end.");
+        // alert("You exited fullscreen. Interview will now end.");
       }
     };
 
@@ -162,7 +162,7 @@ const [showChat, setShowChat] = useState(false)
     }
     setisBlock(true);
     setloading(true);
-    PlayAudioButton(newMessage);
+    await PlayAudioButton(newMessage);
     setisBlock(false);
   }
   const sendMessage = async (inputText?: string) => {
@@ -195,7 +195,7 @@ const [showChat, setShowChat] = useState(false)
     addInterviewMessage(newMessage);
 
     setloading(true);
-    const aiResponse = await InterviewTaking(interview, formatTime(timeLeft).toString());
+    const aiResponse = await InterviewTaking(interview,newMessage, formatTime(timeLeft).toString());
     if (!aiResponse.status || aiResponse.data == undefined) {
       toast.error(aiResponse.error || "Error in AI response");
       setloading(false);
@@ -241,7 +241,7 @@ const [showChat, setShowChat] = useState(false)
           if (AiResponse.ContentType === "END") {
             endInterview();
           }
-          nav.push('/login');
+          nav.push('/signin');
           return;
         }
         if (res.status === 429) {
@@ -336,7 +336,7 @@ const [showChat, setShowChat] = useState(false)
     try {
       setInterviewhasEnd(true);
       let end = new Date();
-      const data = await analytics(interview, questions ?? [], end);
+      const data = await analytics(interview, questions ?? [], end,user?.userId);
       if (!data) {
         console.error("Analytics error");
         toast.error("There was an error while generating analytics");
@@ -420,7 +420,7 @@ const [showChat, setShowChat] = useState(false)
                 variant="ghost"
                 size="sm"
                 onClick={toggleRecording}
-                disabled={InterviewhasEnd}
+                disabled={InterviewhasEnd }
                 className={`rounded-full w-12 h-12 ${
                   !listening && isBlock
                     ? "bg-red-500 hover:bg-red-600"

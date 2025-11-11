@@ -15,7 +15,6 @@ import ProjectCard from "./Profile/Project"
 import SkillCard from "./Profile/Skill"
 import Exp from "./Profile/Work"
 
-
 export function ProfileSection() {
   const imageInputref = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -24,13 +23,23 @@ export function ProfileSection() {
   const handleButtonClickImage = () => {
     imageInputref.current?.click()
   }
-
+  // const fun = async() => {
+  //   console.log("HEY");
+  //   const res = await fetch(`/api/speak`, {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ text: "HELLO" }),
+  //     });
+  //     console.log(res);
+  // }
   const handleButtonClickFile = () => {
     fileInputRef.current?.click()
   }
   const handleSkillUpdate = async (skills: string[]) => {
     try {
-      const res = await updateProfile({ skills });
+      const res = await updateProfile({ skills },user?.userId);
       if (!res.ok) {
         toast.error( `Error: ${res.error || "Failed to update skills"}`);
         return;
@@ -43,7 +52,7 @@ export function ProfileSection() {
   }
   const handleExpUpdate = async (ExpToadd: Experience[], idsToRemove: string[]) => {
     try {
-      const res = await updateProfile({ workExperienceIdsToRemove: idsToRemove, workExperienceToAdd: ExpToadd });
+      const res = await updateProfile({ workExperienceIdsToRemove: idsToRemove, workExperienceToAdd: ExpToadd },user?.userId);
       if (!res.ok) {
         toast.error( `Error: ${res.error || "Failed to update Work Experience"}`);
         return;
@@ -56,7 +65,7 @@ export function ProfileSection() {
   }
   const handleProjectUpdte = async (newProjects: Project[], removedProjectIds: string[]) => {
     try {
-      const res = await updateProfile({ projectIdsToRemove: removedProjectIds, projectsToAdd: newProjects });
+      const res = await updateProfile({ projectIdsToRemove: removedProjectIds, projectsToAdd: newProjects },user?.userId);
       if (!res.ok) {
         toast.error( `Error: ${res.error || "Failed to update  Projects"}`);
         return;
@@ -69,7 +78,7 @@ export function ProfileSection() {
   }
   const handleProfileUpdate = async (tagline: string, about: string) => {
     try {
-      const res = await updateProfile({ tagline, about });
+      const res = await updateProfile({ tagline, about },user?.userId);
      if (!res.ok) {
         toast.error( `Error: ${res.error || "Failed to update profile"}`);
         return;

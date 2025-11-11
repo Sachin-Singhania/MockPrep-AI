@@ -112,7 +112,6 @@ export default function InterviewAnalytics() {
     if (score >= 60) return "secondary"
     return "destructive"
   }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-6">

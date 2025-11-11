@@ -34,8 +34,15 @@ export default function DialogBox() {
   }
 
   const generateJobDetails = async () => {
-    if (!profile) return;
-    if (!profile.tagline) return;
+    console.log("Generating job details...");
+    if (!profile) {
+      toast.error("Profile not found");
+      return;
+    };
+    if (!profile.tagline) {
+      toast.error("Please set your profile tagline first");
+      return;
+    };
     let experience = profile.WorkExperience;
     let currentYear = new Date().getFullYear();
     let min = currentYear, max = 0;
@@ -62,7 +69,10 @@ export default function DialogBox() {
       return;
     }
     if (typeof response.data === "object") {
-      setFormData(response.data);
+      const obj = response.data as JobDescription;
+      setFormData((prev) => ({
+        ...prev,
+        ...obj,}));
       if (!user?.dashboardId) return;
     } else {
       console.log(response);
@@ -83,7 +93,7 @@ export default function DialogBox() {
       });
       return;
     }
-    const resp = await createInterview(user?.dashboardId, formData);
+    const resp = await createInterview(user?.dashboardId, formData,user?.userId);
     if (!resp.ok) {
       toast.error(`Error: ${resp.error || "Failed to create interview"}`);
       return;

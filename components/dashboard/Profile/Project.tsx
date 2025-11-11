@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogTrigger } from "@radix-ui/react-dialog"
 import { Plus, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { usePrevious } from "./Hook"
-import { updateProfile } from "@/lib/actions/api"
 import { toast } from "sonner"
 
 

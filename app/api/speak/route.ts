@@ -6,11 +6,10 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // const session = await getServerSession(authOptions);
+    // if (!session) {
+    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // }
     const tokenCookie = cookies().get('tts-session-token');
     if (!tokenCookie?.value) {
       return NextResponse.json({ error: "Unauthorized: Session token is missing" }, { status: 401 });

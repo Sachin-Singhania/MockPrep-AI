@@ -1,10 +1,12 @@
 "use server"
-import { GoogleGenerativeAI as GoogleGenAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
+
 import pdf from "pdf-parse";
 import { Buffer } from 'buffer';
 import { setInterviewDetails } from "./api";
 
-const ai = new GoogleGenAI(process.env.APIKEY as string);
+const ai = new GoogleGenAI({apiKey:process.env.APIKEY as string});
+// const ai = new GOOGLE(process.env.APIKEY as string);
 
 export async function fillsJob(UserDetails: UserDetails) {
     try {
@@ -28,23 +30,20 @@ export async function fillsJob(UserDetails: UserDetails) {
         You : - {"output": {
                 "jobTitle": "React Developer",
                 "jobDescription": "We are seeking a skilled and passionate React Developer to join our dynamic team. As a React Developer, you will be responsible for developing and implementing user interface components using React concepts and workflows. You will also be responsible for integrating these components with backend services built with Node.js and Next.js. The ideal candidate has a strong understanding of JavaScript, HTML, and CSS, and is proficient in building responsive and accessible web applications. You will be working on projects that require attention to detail and a commitment to writing clean, maintainable code.",
-                "skills":"react","nodejs","nextjs"
-                ],
+                "skills":"react,nodejs,nextjs",
                 "experience": 2}}
            `;
-        const model = ai.getGenerativeModel({
-            model: "gemini-2.0-flash",
-            generationConfig: {
+           
+        const model =await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            config: {
                 temperature: 0.6,
                 responseMimeType: "application/json",
-            },
-        });
-        const { response } = await model.generateContent({
-            contents: [
+            }, contents: [
                 { role: "user", parts: [{ text: query }] }
             ]
         });
-        const output = response.text().trim();
+        const output= model.text?.trim() || "";
 
         const data = JSON.parse(output);
         const res: JobDescription | string = data.output;
@@ -54,7 +53,6 @@ export async function fillsJob(UserDetails: UserDetails) {
             data: res
         }
     } catch (error) {
-        console.log(error)
         return {
             status: false,
             error: "Error in fillsJob function " + new Error("Error in fillsJob function").message,
@@ -75,23 +73,21 @@ export async function ResumeExtracter(pdfInput: string) {
            {"output":{"Skills": string[], "WorkExperience": {role: string,company: string,startYear : number,endYear?: number}, "Projects": [{ name: string, description: string}]}}
             {"output":string}
            `;
-        const model = ai.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            generationConfig: {
-                temperature: 0.0,
+            const model =await ai.models.generateContent({
+             model: "gemini-2.5-flash",
+            config: {
+                temperature: 0.2,
                 responseMimeType: "application/json",
-            },
-            systemInstruction: {
+                systemInstruction: {
                 role: "system",
                 parts: [{ text: systemInstruction }]
+            }
             },
-        });
-        const { response } = await model.generateContent({
             contents: [
                 { role: "user", parts: [{ text: pdfData }] }
             ]
         });
-        const output = response.text().trim();
+             const output= model.text?.trim() || "";
         const data = JSON.parse(output);
         const result: Resume | string = data.output;
         return {
@@ -99,7 +95,6 @@ export async function ResumeExtracter(pdfInput: string) {
             data: result
         }
     } catch (error) {
-        console.log(error)
         return {
             status: false,
             error: "Error in ResumeExtracter function " + new Error("Error in ResumeExtracter function").message,
@@ -108,14 +103,16 @@ export async function ResumeExtracter(pdfInput: string) {
 
 }
 
-export async function InterviewTaking(interviewDetails: interviewDetails, timeLeft: string) {
+export async function InterviewTaking(interviewDetails: interviewDetails,newMessage:InterviewChat, timeLeft: string) {
     try {
         console.log(timeLeft);
-        const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-3);
+        const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-2);
+        lastThreeMessages.push(newMessage);
         let message = {
             InterviewChatHistory: lastThreeMessages,
             JobDescription: interviewDetails.JobDescription, timeLeft
         }
+        console.log(message);
         const systemInstruction = `You are an AI Interview Taker. You take job interviews of users based on job description , title , skills and experience.
         You will also be provided with chats history of the interview if provided , if not then you will start from scratch.
         
@@ -139,6 +136,10 @@ export async function InterviewTaking(interviewDetails: interviewDetails, timeLe
             score will be only in type VALIDATION , give score out of 100
             topic will be only in type Quesition , topic will be short like and 2 word summary of the question asked for example hook management , context api , nodejs , event loop 
 
+        Sample topics to ask :-
+            1) Expierence in Nodejs, and projects done in Nodejs
+            2) Node.js basics, Event Loop, npm & package.json, Express.js, Middleware, RESTful APIs, Error Handling.
+            
         Example 
             name : John Doe
             Job Title: Software Engineer
@@ -150,22 +151,20 @@ export async function InterviewTaking(interviewDetails: interviewDetails, timeLe
          You : {ContentType:"FORMALCHAT",Content :"Good Evening , Mr Doe . Thank you for joining me today . Tell me a little about yourself and why you want to work with us? ."}
 
          `;
-        const model = ai.getGenerativeModel({
-            model: "gemini-1.5-flash",
-            generationConfig: {
+            const model =await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+             config: {
                 responseMimeType: "application/json",
-            },
-            systemInstruction: {
-                role: "system",
-                parts: [{ text: systemInstruction }]
-            },
-        });
-        const { response } = await model.generateContent({
-            contents: [
+                systemInstruction: {
+                    role: "system",
+                    parts: [{ text: systemInstruction }]
+                },
+            }, contents: [
                 { role: "user", parts: [{ text: JSON.stringify(message) }] }
             ]
         });
-        const output = response.text().trim();
+        const output= model.text?.trim() || "";
+     
         const parse = JSON.parse(output);
         let data: InterviewChat = {
             ...parse,
@@ -186,7 +185,7 @@ export async function InterviewTaking(interviewDetails: interviewDetails, timeLe
 }
 
 
-export async function analytics(interviewDetails: interviewDetails, questions: questionPerformance[], end: Date) {
+export async function analytics(interviewDetails: interviewDetails, questions: questionPerformance[], end: Date,userIdfornonOauth?:string): Promise<InterviewData | undefined> {
     try {
         let start = interviewDetails.startTime;
         let duration = (end.getTime() - start.getTime()) / 1000;
@@ -201,12 +200,12 @@ export async function analytics(interviewDetails: interviewDetails, questions: q
             date: interviewDetails.startTime,
             candidateName: interviewDetails.name,
             position: interviewDetails.JobDescription.jobTitle,
-            duration: duration + " seconds",
+            duration: duration + "minutes",
             overallScore,
             questionPerformance,
             ...technicalKeywords,
         };
-        await setInterviewDetails(interviewData, interviewDetails, end)
+        await setInterviewDetails(interviewData, interviewDetails, end ,userIdfornonOauth);
         console.log(interviewData);
         return interviewData;
     } catch (error) {
@@ -246,25 +245,23 @@ async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewI
                
                `
 
-    const model = ai.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        generationConfig: {
-            temperature: 0.8,
-            responseMimeType: "application/json",
-        },
-        systemInstruction: {
-            role: "system",
-            parts: [{ text: systemInstruction }]
-        },
-    });
-    const { response } = await model.generateContent({
-        contents: [
-            { role: "user", parts: [{ text: JSON.stringify(answer) }] }
-        ]
-    });
-    const output = response.text().trim();
-    console.log(output);
+       const model =await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+             config: {
+                temperature: 0.8,
+                responseMimeType: "application/json",
+                systemInstruction: {
+                    role: "system",
+                    parts: [{ text: systemInstruction }]
+                },
+            }, contents: [
+                { role: "user", parts: [{ text: JSON.stringify(answer) }] }
+            ]
+        });
+        const output= model.text?.trim() || "";
+        console.log("Analytics Output:", output);
     const data: InterviewInsights = JSON.parse(output);
+    console.log(data)
     return data;
 
 }

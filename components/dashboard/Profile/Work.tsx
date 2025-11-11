@@ -10,7 +10,6 @@ import { Briefcase, Plus, X } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { usePrevious } from "./Hook"
 import { toast } from "sonner"
-import { updateProfile } from "@/lib/actions/api"
 
 export default function Exp({ experiences,save }: { experiences: Experience[] | undefined ,save(addExp:Experience[],removedExpId:string[]):void}) {
     const originalExperiences = useMemo(() => experiences ?? [], [experiences])

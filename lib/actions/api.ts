@@ -135,9 +135,8 @@ export async function getInterviewDetails(interviewId: string) : Promise<Result<
 
 }
 
-export async function setInterviewDetails(interviewData: InterviewData, interviewDetails: interviewDetails, endTime: Date) : Promise<Result<{ message: string; status: number },string>> {
+export async function setInterviewDetails(interviewData: InterviewData, interviewDetails: interviewDetails, endTime: Date , userIdfornonOauth?:string) : Promise<Result<{ message: string; status: number },string>> {
     try {
-        console.log(interviewData,interviewDetails)
         await prisma.interview.update({
             where: { id: interviewDetails.id },
             data: {
@@ -188,7 +187,7 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
         });
         try {
             const data = await getServerSession(authOptions);
-            const userId = data.user.userId;
+            const userId = data?.user.userId || userIdfornonOauth;
             await prisma.dashboard.update({
                 where: { userId: userId },
                 data: {
@@ -219,20 +218,21 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
     }
 }
 
-export async function createInterview(dashboardId: string, interviewData: JobDescription) : Promise<Result<{ status: boolean; message: string; data?:createInterviewPayload},string>> {
+export async function createInterview(dashboardId: string, interviewData: JobDescription,userIdfornonOauth?:string) : Promise<Result<{ status: boolean; message: string; data?:createInterviewPayload},string>> {
     try {
         const data = await getServerSession(authOptions);
         if (!data?.user?.userId) {
+            if(!userIdfornonOauth)
             return Err("Authentication failed: User not found.");
         }
-        const userId = data.user.userId;
+        const userId = data?.user.userId     || userIdfornonOauth;
         const { success: isallow, error } = await isAllowed(userId);
         if (!isallow) {
             return Err( error || "User is not allowed to create interviews");
         }
         await checkLimit(userId);
         const id = uuidv4();
-        const { success } = await startInterviewAndCreateSession(id);
+        const { success } = await startInterviewAndCreateSession(id ,userId);
         if (!success) {
             return Err("Failed to start interview and create session");
         }
@@ -317,6 +317,8 @@ export async function register(type: "SIGNIN" | "SIGNUP", email: string, passwor
                         status: 200,
                         data
                     })
+                }else{
+                    return Err("Invalid password");
                 }
             }
         }
@@ -351,12 +353,13 @@ export async function register(type: "SIGNIN" | "SIGNUP", email: string, passwor
     }
 }
 
-export async function updateProfile(payload: UpdateProfilePayload) : Promise<Result<{ success: boolean; message?: string},string>> {
+export async function updateProfile(payload: UpdateProfilePayload,userIdfornonOauth?:string) : Promise<Result<{ success: boolean; message?: string},string>> {
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {
+        if(!userIdfornonOauth)
         return Err("Authentication failed: User not found.");
     }
-    const userId = data.user.userId;
+    const userId = data?.user?.userId || userIdfornonOauth;
     try {
         const dashboard = await prisma.dashboard.findUnique({
             where: { userId: userId },
@@ -468,12 +471,14 @@ export async function updateProfile(payload: UpdateProfilePayload) : Promise<Res
     }
 }
 
-async function startInterviewAndCreateSession(interviewId: string) {
+async function startInterviewAndCreateSession(interviewId: string,userIdfornonOauth?:string) {
+
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {
+        if(!userIdfornonOauth)
         return { success: false, error: "Authentication failed: User not found." };
     }
-    const userId = data.user.userId;
+    const userId = data?.user.userId   || userIdfornonOauth;
     if (!userId) {
         return { success: false, error: "Unauthorized" };
     }
@@ -486,8 +491,7 @@ async function startInterviewAndCreateSession(interviewId: string) {
             userId: userId,
             interviewId: interviewId,
         };
-
-        await redis.set(
+const a=        await redis.set(
             `tts-session:${sessionToken}`,
             JSON.stringify(sessionData),
             { ex: 23 * 60 }
