@@ -37,16 +37,13 @@ export default function DashboardPage() {
   }
   return (
     <div className="h-screen overflow-hidden bg-gray-50 flex">
-
       {/* Hamburger Button (mobile only) */}
-
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className={`p-4 md:hidden z-50 fixed top-4 left-4 bg-white rounded-md shadow-lg ${sidebarOpen ? "hidden" : "block"}`}
       >
         ☰
       </button>
-
       {/* Overlay (mobile only) */}
       {sidebarOpen && (
         <div
@@ -54,10 +51,10 @@ export default function DashboardPage() {
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}
-
       {/* Sidebar */}
       <div
-        className={`fixed z-40 top-0 left-0 h-full w-72 bg-transparent p-4 flex flex-col gap-y-6 transform transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed z-40 top-0 left-0 h-full w-72 bg-transparent p-4 flex flex-col 
+          gap-y-6 transform transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         {/* Top Card - Logo */}
@@ -69,7 +66,6 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-gray-900">MockPrep</h1>
           </div>
         </div>
-
         {/* Bottom Card - Profile + Nav + Logout */}
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 flex flex-col flex-1 justify-between">
           {/* Navigation */}
@@ -97,7 +93,6 @@ export default function DashboardPage() {
               })}
             </ul>
           </nav>
-
           {/* Logout */}
           <div className="pt-4 mt-4 border-t border-gray-100">
             <Button
@@ -118,7 +113,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">{renderContent()}</div>
     </div>

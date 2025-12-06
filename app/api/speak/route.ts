@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     // if (!session) {
     //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     // }
-    const tokenCookie = cookies().get('tts-session-token');
+    const tokenCookie = (await cookies()).get('tts-session-token');
     if (!tokenCookie?.value) {
       return NextResponse.json({ error: "Unauthorized: Session token is missing" }, { status: 401 });
     }

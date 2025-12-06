@@ -103,7 +103,8 @@ export async function ResumeExtracter(pdfInput: string) {
 
 }
 
-export async function InterviewTaking(interviewDetails: interviewDetails,newMessage:InterviewChat, timeLeft: string) {
+export async function InterviewTaking(interviewDetails: interviewDetails,
+    newMessage:InterviewChat, timeLeft: string) {
     try {
         console.log(timeLeft);
         const lastThreeMessages = interviewDetails.InterviewChatHistory.slice(-2);
@@ -184,8 +185,9 @@ export async function InterviewTaking(interviewDetails: interviewDetails,newMess
     }
 }
 
-
-export async function analytics(interviewDetails: interviewDetails, questions: questionPerformance[], end: Date,userIdfornonOauth?:string): Promise<InterviewData | undefined> {
+export async function analytics(interviewDetails: interviewDetails, 
+    questions: questionPerformance[], end: Date,userIdfornonOauth?:string):
+     Promise<InterviewData | undefined> {
     try {
         let start = interviewDetails.startTime;
         let duration = (end.getTime() - start.getTime()) / 1000;
@@ -212,7 +214,8 @@ export async function analytics(interviewDetails: interviewDetails, questions: q
         console.error(error);
     }
 }
-async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewInsights> {
+async function getTechnicalKeywords(answer: InterviewChat[]): 
+Promise<InterviewInsights> {
 
     const systemInstruction = `You are an AI Interview Evaluator. Your job is to analyze a candidate's answers from an AI-powered mock interview and return structured JSON data as per the format described below.
 
@@ -265,6 +268,7 @@ async function getTechnicalKeywords(answer: InterviewChat[]): Promise<InterviewI
     return data;
 
 }
+
 async function parsePdfIfMaxTwoPages(base64: string) {
     const base64Data = base64.split(";base64,").pop();
 

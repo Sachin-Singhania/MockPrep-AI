@@ -12,15 +12,23 @@ import { uuidv4 } from "../utils";
 type Ok<T> = T extends void ? { ok: true } : { ok: true; value: T };
 
 type Err<E> = {
-  ok: false;
-  error: E;
+    ok: false;
+    error: E;
 };
 const Ok = <T>(value?: T extends void ? void : T): Ok<T> => {
-  return (typeof value === 'undefined' ? { ok: true } : { ok: true, value }) as Ok<T>;
+    return (typeof value === 'undefined' ? { ok: true } : { ok: true, value }) as Ok<T>;
 };
 const Err = <E>(error: E): Err<E> => ({ ok: false, error });
 type Result<T, E = string> = Ok<T> | Err<E>;
-export async function getProfile(userId: string) : Promise<Result<{ message: string; data: ProfileResult | null },string>> {
+
+export type ProfileReturn = Result<{ message: string; data: ProfileResult | null }, string>;
+export type InterviewDetailsReturn = Result<{ message: string; status: number; data?: InterviewResult | null }, string>;
+export type SetInterviewReturn = Result<{ message: string; status: number }, string>;
+export type CreateInterviewReturn = Result<{ status: boolean; message: string; data?: createInterviewPayload }, string>;
+export type RegisterReturn = Result<{ message: string; status: number; data: RegisterPayload }, string>
+export type UpdateProfileReturn = Result<{ success: boolean; message?: string }, string>;
+
+export async function getProfile(userId: string): Promise<ProfileReturn> {
     try {
         const resp = await prisma.dashboard.findFirst({
             where: {
@@ -48,7 +56,7 @@ export async function getProfile(userId: string) : Promise<Result<{ message: str
                         },
                         tagline: true,
                         about: true,
-                        
+
                     }
                 }, Interview: {
                     where: {
@@ -65,15 +73,15 @@ export async function getProfile(userId: string) : Promise<Result<{ message: str
                         startTime: true,
                         endTime: true, Jobtitle: true
                     }
-                },Activity:{
+                }, Activity: {
                     select: {
                         type: true,
                         content: true,
-                    },orderBy:{
-                        createdAt : 'desc',
-                        
-                    },take : 6
-                },id : true,
+                    }, orderBy: {
+                        createdAt: 'desc',
+
+                    }, take: 6
+                }, id: true,
                 createdAt: true,
             }
         })
@@ -83,11 +91,11 @@ export async function getProfile(userId: string) : Promise<Result<{ message: str
         })
     } catch (error) {
         console.error("Error fetching profile:", error);
-             return Err("Error Occured : "+error);
+        return Err("Error Occured : " + error);
     }
 }
 
-export async function getInterviewDetails(interviewId: string) : Promise<Result<{ message: string; status: number; data?: InterviewResult | null },string>> {
+export async function getInterviewDetails(interviewId: string): Promise<InterviewDetailsReturn> {
     if (!interviewId) {
         return Ok({
             message: " Analytics ID is required",
@@ -95,7 +103,7 @@ export async function getInterviewDetails(interviewId: string) : Promise<Result<
         })
     }
     try {
-        
+
         const interview = await prisma.analytics.findUnique({
             where: { interviewId },
             select: {
@@ -109,33 +117,34 @@ export async function getInterviewDetails(interviewId: string) : Promise<Result<
                 VocabularyScore: true,
                 TechnicalKeywords: true,
                 TechnicalScore: true,
-            RelevanceScore: true, questions: {
-                select: {
-                    id: true,
-                    topic: true,
-                    score: true,
-                }
-            }, Interview: {
-                select: {
-                    startTime: true,
-                    endTime: true, Jobtitle: true
+                RelevanceScore: true, questions: {
+                    select: {
+                        id: true,
+                        topic: true,
+                        score: true,
+                    }
+                }, Interview: {
+                    select: {
+                        startTime: true,
+                        endTime: true, Jobtitle: true
+                    }
                 }
             }
-        }
-    });
-    return Ok({
-        message: "Interview details fetched successfully",
-        status: 200,
-        data: interview
-    });
-} catch (error) {
-    console.error(error);
-    return Err("Error fetching interview details: " + error);
-}
+        });
+        return Ok({
+            message: "Interview details fetched successfully",
+            status: 200,
+            data: interview
+        });
+    } catch (error) {
+        console.error(error);
+        return Err("Error fetching interview details: " + error);
+    }
 
 }
 
-export async function setInterviewDetails(interviewData: InterviewData, interviewDetails: interviewDetails, endTime: Date , userIdfornonOauth?:string) : Promise<Result<{ message: string; status: number },string>> {
+export async function setInterviewDetails(interviewData: InterviewData, interviewDetails: interviewDetails,
+    endTime: Date, userIdfornonOauth?: string): Promise<SetInterviewReturn> {
     try {
         await prisma.interview.update({
             where: { id: interviewDetails.id },
@@ -176,7 +185,7 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
                             createMany: {
                                 data: interviewData.questionPerformance.map((question) => ({
                                     topic: question.topic,
-                                    question : question.question ? question.question : "Question Not found",
+                                    question: question.question ? question.question : "Question Not found",
                                     score: question.score ? question.score : 0, id: question.id
                                 })),
                             }
@@ -191,14 +200,14 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
             await prisma.dashboard.update({
                 where: { userId: userId },
                 data: {
-                    Activity:{
+                    Activity: {
                         create: {
-                            content :{
+                            content: {
                                 interviewId: interviewDetails.id,
-                                jobTitle: interviewDetails.JobDescription.jobTitle ,
+                                jobTitle: interviewDetails.JobDescription.jobTitle,
                                 overallScore: interviewData.overallScore,
                                 date: new Date(),
-                            },type : "INTERVIEW"
+                            }, type: "INTERVIEW"
                         }
                     }
                 }
@@ -218,21 +227,22 @@ export async function setInterviewDetails(interviewData: InterviewData, intervie
     }
 }
 
-export async function createInterview(dashboardId: string, interviewData: JobDescription,userIdfornonOauth?:string) : Promise<Result<{ status: boolean; message: string; data?:createInterviewPayload},string>> {
+export async function createInterview(dashboardId: string, interviewData: JobDescription,
+    userIdfornonOauth?: string): Promise<CreateInterviewReturn> {
     try {
         const data = await getServerSession(authOptions);
         if (!data?.user?.userId) {
-            if(!userIdfornonOauth)
-            return Err("Authentication failed: User not found.");
+            if (!userIdfornonOauth)
+                return Err("Authentication failed: User not found.");
         }
-        const userId = data?.user.userId     || userIdfornonOauth;
+        const userId = data?.user.userId || userIdfornonOauth;
         const { success: isallow, error } = await isAllowed(userId);
         if (!isallow) {
-            return Err( error || "User is not allowed to create interviews");
+            return Err(error || "User is not allowed to create interviews");
         }
         await checkLimit(userId);
         const id = uuidv4();
-        const { success } = await startInterviewAndCreateSession(id ,userId);
+        const { success } = await startInterviewAndCreateSession(id, userId);
         if (!success) {
             return Err("Failed to start interview and create session");
         }
@@ -277,10 +287,11 @@ export async function createInterview(dashboardId: string, interviewData: JobDes
     }
 }
 
-export async function register(type: "SIGNIN" | "SIGNUP", email: string, password: string, name?: string) : Promise<Result<{ message: string; status: number; data: RegisterPayload },string>> {
+export async function register(type: "SIGNIN" | "SIGNUP", email: string,
+    password: string, name?: string): Promise<RegisterReturn> {
     try {
         if (!email || !password || (type == "SIGNUP" && !name)) {
-            return Err ("Email, password and name are required for registration");
+            return Err("Email, password and name are required for registration");
         };
         const user = await prisma.user.findUnique({ where: { email }, include: { dashboards: { select: { id: true } } } });
         if (user) {
@@ -317,47 +328,53 @@ export async function register(type: "SIGNIN" | "SIGNUP", email: string, passwor
                         status: 200,
                         data
                     })
-                }else{
+                } else {
                     return Err("Invalid password");
                 }
             }
         }
         const response = await prisma.user.create({
-                data: { email, name, password: bcrypt.hashSync(password, 10), dashboards: { create: {
-                    Activity :{
-                        create: {
-                            content: {
-                                date: new Date()
-                            },
-                            type: "DASHBOARD_CREATED"
+            data: {
+                email, name, password: bcrypt.hashSync(password, 10), dashboards: {
+                    create: {
+                        Activity: {
+                            create: {
+                                content: {
+                                    date: new Date()
+                                },
+                                type: "DASHBOARD_CREATED"
+                            }
                         }
                     }
-                } } },
-                select: {
-                    id: true,
-                    email: true,
-                    name: true,
-                    image: true,
-                    dashboards: {
-                        select: { id: true } }
                 }
-            });
-            return Ok({
-                message: "User created successfully",
-                status: 201,
-                data: response
-            })
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+                dashboards: {
+                    select: { id: true }
+                }
+            }
+        });
+        return Ok({
+            message: "User created successfully",
+            status: 201,
+            data: response
+        })
 
     } catch (error) {
         return Err(error instanceof Error ? error.message : "An unexpected error occurred");
     }
 }
 
-export async function updateProfile(payload: UpdateProfilePayload,userIdfornonOauth?:string) : Promise<Result<{ success: boolean; message?: string},string>> {
+export async function updateProfile(payload: UpdateProfilePayload,
+    userIdfornonOauth?: string): Promise<UpdateProfileReturn> {
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {
-        if(!userIdfornonOauth)
-        return Err("Authentication failed: User not found.");
+        if (!userIdfornonOauth)
+            return Err("Authentication failed: User not found.");
     }
     const userId = data?.user?.userId || userIdfornonOauth;
     try {
@@ -369,7 +386,7 @@ export async function updateProfile(payload: UpdateProfilePayload,userIdfornonOa
         if (!dashboard) {
             return Err("Dashboard not found for the user.");
         }
-        let flag=true;
+        let flag = true;
         let profileId = dashboard.Profile?.id;
         if (!dashboard.Profile || !profileId) {
             const response = await prisma.dashboard.update({
@@ -377,7 +394,7 @@ export async function updateProfile(payload: UpdateProfilePayload,userIdfornonOa
                 data: {
                     Profile: {
                         create: {}
-                    },Activity:{
+                    }, Activity: {
                         create: {
                             content: {
                                 date: new Date()
@@ -388,21 +405,21 @@ export async function updateProfile(payload: UpdateProfilePayload,userIdfornonOa
                 }
             });
             profileId = response.id;
-            flag=false;
+            flag = false;
         }
-        
-        if(flag){
+
+        if (flag) {
             const getActivity = await prisma.recentActivity.findFirst({
                 where: {
                     dashboardId: dashboard.id,
                     type: "PROFILE_UPDATED",
                     createdAt: {
-                        gte: new Date(new Date().setHours(0, 0, 0, 0)), 
+                        gte: new Date(new Date().setHours(0, 0, 0, 0)),
                     },
                 },
             });
-            
-            if (getActivity==null) {
+
+            if (getActivity == null) {
                 await prisma.recentActivity.create({
                     data: {
                         dashboardId: dashboard.id,
@@ -412,7 +429,7 @@ export async function updateProfile(payload: UpdateProfilePayload,userIdfornonOa
                         },
                     },
                 });
-            } 
+            }
         }
 
         await prisma.$transaction(async (tx) => {
@@ -471,14 +488,15 @@ export async function updateProfile(payload: UpdateProfilePayload,userIdfornonOa
     }
 }
 
-async function startInterviewAndCreateSession(interviewId: string,userIdfornonOauth?:string) {
+async function startInterviewAndCreateSession(interviewId: string,
+    userIdfornonOauth?: string) {
 
     const data = await getServerSession(authOptions);
     if (!data?.user?.userId) {
-        if(!userIdfornonOauth)
-        return { success: false, error: "Authentication failed: User not found." };
+        if (!userIdfornonOauth)
+            return { success: false, error: "Authentication failed: User not found." };
     }
-    const userId = data?.user.userId   || userIdfornonOauth;
+    const userId = data?.user.userId || userIdfornonOauth;
     if (!userId) {
         return { success: false, error: "Unauthorized" };
     }
@@ -491,12 +509,12 @@ async function startInterviewAndCreateSession(interviewId: string,userIdfornonOa
             userId: userId,
             interviewId: interviewId,
         };
-const a=        await redis.set(
+        const a = await redis.set(
             `tts-session:${sessionToken}`,
             JSON.stringify(sessionData),
             { ex: 23 * 60 }
         );
-        cookies().set('tts-session-token', sessionToken, {
+        (await cookies()).set('tts-session-token', sessionToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             path: '/',
@@ -508,6 +526,7 @@ const a=        await redis.set(
         return { success: false };
     }
 }
+
 async function checkLimit(userId: string) {
     try {
         const user = await prisma.user.findUnique({
@@ -545,6 +564,7 @@ async function checkLimit(userId: string) {
         }
     }
 }
+
 async function isAllowed(userId: string) {
     try {
         const user = await prisma.user.findUnique({
