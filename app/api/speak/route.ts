@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Message cannot be empty." }, { status: 400 });
     }
     console.log("REACHED HERE 2")
-    const result = await fetch("https://api.elevenlabs.io/v1/text-to-speech/eA8FmgNe2rjMWPK5PQQZ/stream", {
+    const result = await fetch("https://api.elevenlabs.io/v1/text-to-speech/pNInz6obpgDQGcFmaJgB/stream", {
       method: "POST",
       headers: {
         "xi-api-key": process.env.ELEVEN_LABS_API_KEY!,
