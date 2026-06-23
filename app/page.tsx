@@ -1,6 +1,6 @@
 "use client"
 import { Button } from "@/components/ui/button"
-import { BarChart3, Briefcase, Clock, FileText, Star, TrendingUp, User, Video, Zap } from "lucide-react"
+import { BarChart3, Briefcase, Clock, FileText, PlayCircle, Star, TrendingUp, User, Video, Zap } from "lucide-react"
 import { useSession } from "next-auth/react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -55,6 +55,19 @@ export default function HomePage() {
               Job Interview
             </span>
           </h2>
+          <a
+            href="https://youtu.be/6hS2PpHEdFU"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button
+              variant="outline"
+              className="mb-8 border-purple-600 rounded-full px-6 py-6 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all"
+            >
+              <PlayCircle className="w-5 h-5 mr-2 text-red-500" />
+              Demo Video
+            </Button>
+          </a>
           <p className="text-xl text-gray-700 mb-10 max-w-3xl mx-auto animate-fade-in-up animation-delay-300">
             Practice with our AI interviewer and get real-time feedback to improve your interview skills and land your
             dream job.
