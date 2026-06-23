@@ -1,7 +1,5 @@
 import GoogleProvider from "next-auth/providers/google"
 import { DefaultSession, SessionStrategy } from "next-auth"
-import { headers } from "next/headers";
-import { signin_rate_limit } from "./redis";
 import { prisma } from "./prisma";
 declare module "next-auth" {
   interface Session {
@@ -33,7 +31,9 @@ export const authOptions = {
   callbacks: {
     async jwt({ token, user }: any) {
       try {
+        console.log("reached here 1")
         if (user) {
+           console.log("reached here 2")
           const exsistingUser = await prisma.user.findUnique({
             where: { email: user.email }, include: {
               dashboards:
@@ -43,6 +43,7 @@ export const authOptions = {
           console.log(exsistingUser);
           let userId;
           let dashboardId;
+          console.log("reached here 3")
           if (!exsistingUser) {
             const newUser = await prisma.user.create({
               data: {
@@ -64,7 +65,9 @@ export const authOptions = {
             });
             userId = newUser.id
             dashboardId = newUser.dashboards?.id;
+            console.log("reached here 4")
           } else {
+            console.log("reached here 5")
             await prisma.user.update({
               where: { email: user.email },
               data: {
@@ -73,15 +76,18 @@ export const authOptions = {
             })
             userId = exsistingUser.id;
             dashboardId = exsistingUser.dashboards?.id;
+            console.log("reached here 6")
           }
           token.id = user.sub ?? token.sub;
           token.name = user.name;
           token.email = user.email;
           token.userId = userId;
           token.dashboardId = dashboardId;
+          console.log("reached here 7")
         }
         return token
       } catch (error) {
+        console.log("Error while signing in:", error);
         throw new Error("Error while signing in : Error " + error);
       }
     },
@@ -91,19 +97,17 @@ export const authOptions = {
         userId: token.userId,
         dashboardId: token.dashboardId
       };
-
+      console.log("Session created:", session);
       return session;
     },
-    async signIn() {
-      const ip = headers().get('x-forwarded-for') ?? 'unknown';
-      const { success } = await signin_rate_limit.limit(ip);
-      console.log(`Request from IP: ${ip}`);
-      if (!success) {
-        return false;
-      }
-      return true;
-    }, pages: {
-      signIn: '/signin',
-    }
-  }
+    // async signIn() {
+    //   const ip = (await headers()).get('x-forwarded-for') ?? 'unknown';
+    //   const { success } = await signin_rate_limit.limit(ip);
+    //   console.log(`Request from IP: ${ip}`);
+    //   if (!success) {
+    //     return false;
+    //   }
+    //   return true;
+    // }, 
+  },
 }
