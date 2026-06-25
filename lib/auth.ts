@@ -1,5 +1,6 @@
 import GoogleProvider from "next-auth/providers/google"
 import { DefaultSession, SessionStrategy } from "next-auth"
+import { signin_rate_limit } from "./redis";
 import { prisma } from "./prisma";
 declare module "next-auth" {
   interface Session {
@@ -109,5 +110,8 @@ export const authOptions = {
     //   }
     //   return true;
     // }, 
-  },
+  },pages: {
+    signIn: '/signin',
+    error: '/signin', 
+  }
 }
